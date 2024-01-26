@@ -15,7 +15,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _androidChannel = const MethodChannel("authorization:android");
   final MethodChannel _methodChannel = const MethodChannel("android:authorization");
-  final Logger logger = Logger();
+  final Logger _log = Logger();
 
   void _authorize() async {
     await _methodChannel.invokeMethod<String>("authorization");
@@ -34,19 +34,19 @@ class _LoginPageState extends State<LoginPage> {
       if (call.method == "authCode") {
         final authCode = call.arguments as String?;
         if (authCode != null) {
-          logger.i("auth code received");
+          _log.i("auth code received");
         } else {
-          logger.w("auth code is null, token access can't take place");
+          _log.w("auth code is null, token access can't take place");
         }
       }
       if (call.method == "accessToken") {
         final accessToken = call.arguments as String?;
         if (accessToken != null) {
-          logger.i("access token is received");
+          _log.i("access token is received");
           _saveAccessToken(accessToken);
           widget.afterAuthComplete();
         } else {
-          logger.w("access token is null, can't proceed to main menu");
+          _log.w("access token is null, can't proceed to main menu");
         }
       }
     });

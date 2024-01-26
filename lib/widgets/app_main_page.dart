@@ -163,7 +163,21 @@ class _MainPageState extends State<MainPage> {
             });
           },
           shape: const CircleBorder(),
-          child: const Icon(Icons.search_rounded, color: Colors.white, size: 40,),
+          child: Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color.fromARGB(200, 46, 90, 136),
+                  MediaQuery.of(context).platformBrightness == Brightness.dark ?
+                    Colors.black87 : Colors.grey.shade400,
+                ]
+              ),
+              shape: BoxShape.circle
+            ),
+            child: const Icon(Icons.search_rounded, color: Colors.white, size: 40,),
+          )
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       ),

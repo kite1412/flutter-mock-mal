@@ -11,8 +11,8 @@ class InfoBar {
     return field == null || field.isEmpty ? "No Content" : field;
   }
 
-  static num assertNullNumField(num? field) {
-    return field ?? 0;
+  static String assertNullNumField(num? field) {
+    return field != null ? field.toString() : "N/A" ;
   }
 
   static String _mapStatus(String status) {

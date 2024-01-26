@@ -10,7 +10,6 @@ class AlternativeTitles {
 
   AlternativeTitles(this.synonyms, this.en, this.ja);
 
-
   // Required factor constructor for deserialization
   factory AlternativeTitles.fromJson(Map<String, dynamic> json) => _$AlternativeTitlesFromJson(json);
 

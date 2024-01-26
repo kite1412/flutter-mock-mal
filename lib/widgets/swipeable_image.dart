@@ -23,7 +23,7 @@ class _SwipeableImageState extends State<SwipeableImage> {
 
   List<Widget> _pictureIndicators() {
     List<Widget> indicators = [];
-    for (int i = 0; i < widget.pictures.length; i++) {
+    for (int i = 0; i < widget.pictures.length && i < 10; i++) {
       indicators.add(
         Padding(
           padding: const EdgeInsets.only(right: 1, left: 1),
@@ -32,6 +32,34 @@ class _SwipeableImageState extends State<SwipeableImage> {
       );
     }
     return indicators;
+  }
+
+  List<Widget> _pictures() {
+    return widget.pictures.length > 10 ? widget.pictures.getRange(0, 10).map((picture) {
+      return Padding(
+          padding: const EdgeInsets.only(right: 4, left: 4),
+          child: Container(
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+            clipBehavior: Clip.antiAlias,
+            child: Image(
+              image: Image.network(picture.medium).image,
+              fit: BoxFit.cover,
+            ),
+          )
+      );
+    }).toList() : widget.pictures.map((picture) {
+      return Padding(
+          padding: const EdgeInsets.only(right: 4, left: 4),
+          child: Container(
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+            clipBehavior: Clip.antiAlias,
+            child: Image(
+              image: Image.network(picture.medium).image,
+              fit: BoxFit.cover,
+            ),
+          )
+      );
+    }).toList();
   }
 
   @override
@@ -48,19 +76,7 @@ class _SwipeableImageState extends State<SwipeableImage> {
               });
             },
             scrollDirection: Axis.horizontal,
-            children: widget.pictures.map((picture) {
-              return Padding(
-                  padding: const EdgeInsets.only(right: 4, left: 4),
-                  child: Container(
-                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-                    clipBehavior: Clip.antiAlias,
-                    child: Image(
-                      image: Image.network(picture.medium).image,
-                      fit: BoxFit.cover,
-                    ),
-                  )
-              );
-            }).toList(),
+            children: _pictures(),
           ),
         ),
         Positioned(

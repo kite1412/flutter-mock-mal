@@ -4,6 +4,7 @@ import 'package:anime_gallery/model/user_media_status.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 import 'alternative_titles.dart';
+import 'author.dart';
 import 'genre.dart';
 import 'media_picture.dart';
 
@@ -43,6 +44,7 @@ class MediaNode {
   List<Studio>? studios;
   @JsonKey(name: "my_list_status")
   UserMediaStatus? userMediaStatus;
+  List<Author>? authors;
 
   MediaNode(this.id, this.title, this.mediaPicture);
 
@@ -55,7 +57,12 @@ class MediaNode {
       ..mediaType = source.mediaType
       ..status = source.status
       ..synopsis = source.synopsis
-      ..pictures = source.pictures;
+      ..pictures = source.pictures
+      ..genres = source.genres
+      ..alternativeTitles = source.alternativeTitles
+      ..startSeason = source.startSeason
+      ..rating = source.rating
+      ..studios = source.studios;
   }
 
   factory MediaNode.empty() {

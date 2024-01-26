@@ -14,9 +14,7 @@ typedef ApiCallback<T> = void Function(T);
 class MalAPIHelper {
   static final Logger _log = Logger();
   static final List<String> _mediaFields = [
-    "genres",
     "pictures",
-    "my_list_status"
   ];
 
   // not intended to be instantiated

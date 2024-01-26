@@ -32,7 +32,6 @@ class MalAPIImpl implements MalAPI {
     return accessToken != null ? await tokenCallback(accessToken) : await onTokenNull();
   }
 
-  // TODO make this to be able return either [Data] or [DataWithRank]
   @override
   Future<dynamic> fetchMedia(
     String path,
@@ -66,11 +65,7 @@ class MalAPIImpl implements MalAPI {
         final Response response = await get(Uri.parse("${MalConstant.uriString}$fullPath"), headers: _authHeader(token));
         final Map<String, dynamic> json = jsonDecode(response.body);
         dynamic data;
-        if (!needRank) {
-          data = Data.fromJson(json);
-        } else {
-          data = DataWithRank.fromJson(json);
-        }
+        data = !needRank ? Data.fromJson(json) : DataWithRank.fromJson(json);
         _log.i("fetching media success");
         return data;
       } catch (e) {

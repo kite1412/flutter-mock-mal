@@ -1,4 +1,5 @@
 import 'package:anime_gallery/api/api_helper.dart';
+import 'package:anime_gallery/util/global_constant.dart';
 import 'package:anime_gallery/widgets/media_detail.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
@@ -60,17 +61,7 @@ class _MediaListState extends State<MediaList> {
       queryParam: {
         "q" : "High school",
         "limit" : 70,
-        "fields" : [
-          "synopsis",
-          "mean",
-          "media_type",
-          "status",
-          "genres",
-          "num_scoring_users",
-          "rank",
-          "popularity",
-          "my_list_status"
-        ],
+        "fields" : widget.isAnime ? GlobalConstant.mandatoryFields : GlobalConstant.mangaMandatoryFields
       },
       dataCallback: (data) {
         final next = data.paging.next;

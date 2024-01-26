@@ -2,12 +2,20 @@ import 'dart:ui';
 
 import 'package:anime_gallery/api/api_helper.dart';
 import 'package:anime_gallery/model/node_with_rank.dart';
-import 'package:anime_gallery/widgets/media_detail.dart';
+import 'package:anime_gallery/util/history.dart';
+import 'package:anime_gallery/widgets/media_card.dart';
+import 'package:anime_gallery/widgets/media_list.dart';
+import 'package:anime_gallery/widgets/search_bar.dart' as my;
+import 'package:anime_gallery/util/global_constant.dart';
+import 'package:anime_gallery/widgets/search_history.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:uuid/uuid.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../model/media_node.dart';
+import '../util/media_category.dart';
+import 'category_bar.dart';
+import 'media_card_column.dart';
 
 class DiscoveryPage extends StatefulWidget {
   const DiscoveryPage({super.key});
@@ -17,25 +25,27 @@ class DiscoveryPage extends StatefulWidget {
 }
 
 class _DiscoveryPageState extends State<DiscoveryPage> {
+  String _title = "";
+  bool _isSearchBarOnFocus = false;
+  bool _isShowingMediaList = false;
+  bool _isOnMediaListLoading = false;
+  bool _isTitleUpdated = false;
   List<MediaNodeRanked> _rankingNodes = [];
+  List<MediaNodeRanked> _rankingNodesManga = [];
+  List<MediaNodeRanked> _intermediateRankingNodes = [];
   List<MediaNode> _suggestionsNodes = [];
   List<MediaNode> _seasonalNodes = [];
-  final List<String> _mandatoryFields = [
-    "synopsis",
-    "mean",
-    "media_type",
-    "status",
-    "genres",
-    "num_scoring_users",
-    "rank",
-    "popularity",
-    "my_list_status"
-  ];
+  List<String> _searchesHistory = [];
+  List<MediaNode> _nodes = [];
+  late final History _history;
+  late final TextEditingController _textEditingController;
+  late final FocusNode _focusNode;
+  late final ScrollController _scrollController;
 
   List<dynamic> categoryNodes(int index) {
     switch(index) {
       case 0:
-        return _rankingNodes;
+        return _intermediateRankingNodes;
       case 1:
         return _suggestionsNodes;
       case 2:
@@ -45,7 +55,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
     }
   }
 
-  _MediaCategory _seasonalCategory() {
+  MediaCategory _seasonalCategory() {
     String season = "";
     List<Color> gradients = [];
     switch (DateTime.now().month) {
@@ -88,7 +98,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
         ]);
           break;
     }
-    return _MediaCategory(
+    return MediaCategory(
       index: 2,
       category: "Currently Airing",
       description: "Currently airing or publishing works",
@@ -96,18 +106,18 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
       gradients: gradients,
       queryParams: {
         "limit" : 20,
-        "fields" : _mandatoryFields,
+        "fields" : GlobalConstant.mandatoryFields,
       }
     );
   }
 
-  List<_MediaCategory> _categories() => [
-    _MediaCategory(
+  List<MediaCategory> _categories() => [
+    const MediaCategory(
       index: 0,
       category: "Rank",
       description: "Works ranking",
       path: "ranking",
-      gradients: const [
+      gradients: [
         Color.fromARGB(255, 240, 89, 65),
         Color.fromARGB(255, 190, 49, 68),
         Color.fromARGB(255, 135, 65, 68),
@@ -116,316 +126,301 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
       queryParams: {
         "ranking_type" : "all",
         "limit" : 20,
-        "fields" : _mandatoryFields,
+        "fields" : GlobalConstant.mandatoryFields,
       }
     ),
-    _MediaCategory(
+    const MediaCategory(
       index: 1,
       category: "Suggestions",
       description: "Suggestions based on your history",
       path: "suggestions",
-      gradients: const [
+      gradients: [
         Color.fromARGB(255, 194, 217, 255),
         Color.fromARGB(255, 142, 143, 250),
         Color.fromARGB(255, 46, 90, 136)
       ],
       queryParams: {
         "limit" : 20,
-        "fields" : _mandatoryFields,
+        "fields" : GlobalConstant.mandatoryFields,
       }
     ),
     _seasonalCategory(),
   ];
 
+  void _fetchCategoryBasedAnime() {
+    MalAPIHelper.mediaWithCategory(true, _categories()[0].path, (nodes) {
+      setState(() {
+        _intermediateRankingNodes = nodes;
+        _rankingNodes = nodes;
+      });
+    },
+      queryParam: _categories()[0].queryParams,
+      needRank: true,
+    );
+    MalAPIHelper.mediaWithCategory(true, _categories()[1].path, (nodes) {
+      setState(() {
+        _suggestionsNodes = nodes;
+      });
+    },
+      queryParam: _categories()[1].queryParams
+    );
+    MalAPIHelper.mediaWithCategory(true, _categories()[2].path, (nodes) {
+      setState(() {
+        _seasonalNodes = nodes;
+      });
+    },
+      queryParam: _categories()[2].queryParams
+    );
+  }
+
+  void _fetchRankedManga() {
+    MalAPIHelper.mediaWithCategory(false, _categories()[0].path, (nodes) {
+      _rankingNodesManga = nodes;
+    },
+      queryParam: _categories()[0].queryParams,
+      needRank: true,
+    );
+  }
+
+  void _beginFetching() {
+    _fetchCategoryBasedAnime();
+    _fetchRankedManga();
+  }
+
+  void _getHistory() async {
+    var temp = await _history.getSearchHistory();
+    setState(() {
+      _searchesHistory = temp;
+    });
+  }
+
+  void _deleteHistory(String search) {
+    _history.delete(search);
+    _getHistory();
+  }
+
+  void _fetchMedia() {
+    MalAPIHelper.media(
+      true,
+      (nodes) {
+        setState(() {
+          _nodes = nodes;
+          _isTitleUpdated = false;
+        });
+      },
+      queryParam: {
+        "q" : _title,
+        "limit" : 100,
+        "fields" : GlobalConstant.mandatoryFields
+      }
+    );
+  }
+
+  void _deleteAllHistory(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(
+            "Clear all recent history?",
+            style: Theme.of(context).textTheme.displaySmall,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                "Cancel",
+                style: Theme.of(context).textTheme.bodyLarge
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                _history.deleteAll();
+                _getHistory();
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                "Yes",
+                style: Theme.of(context).textTheme.bodyLarge!.copyWith(color: Colors.red),)
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   void initState() {
     super.initState();
-    MalAPIHelper.mediaWithCategory(true, _categories()[0].path, (nodes) {
-        setState(() {
-           _rankingNodes = nodes;
-        });
-      },
-        queryParam: _categories()[0].queryParams,
-        needRank: true,
-    );
-    MalAPIHelper.mediaWithCategory(true, _categories()[1].path, (nodes) {
-        setState(() {
-           _suggestionsNodes = nodes;
-        });
-      },
-        queryParam: _categories()[1].queryParams
-    );
-    MalAPIHelper.mediaWithCategory(true, _categories()[2].path, (nodes) {
-        setState(() {
-           _seasonalNodes = nodes;
-        });
-      },
-        queryParam: _categories()[2].queryParams
-    );
+    _scrollController = ScrollController();
+    _textEditingController = TextEditingController();
+    _focusNode = FocusNode();
+    _history = History();
+    _getHistory();
+    _beginFetching();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _textEditingController.dispose();
+    _focusNode.dispose();
+    _scrollController.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: CustomScrollView(
+        controller: _scrollController,
         slivers: [
           SliverAppBar(
+            floating: true,
+            pinned: true,
+            leading: IconButton(
+              onPressed: () {
+                if (_focusNode.hasFocus) {
+                  _focusNode.unfocus();
+                } else {
+                  if (_isSearchBarOnFocus) {
+                    if (_isOnMediaListLoading) {
+                      setState(() {
+                        _isShowingMediaList = true;
+                        _isOnMediaListLoading = false;
+                      });
+                    } else {
+                      _scrollController.jumpTo(0);
+                      _textEditingController.clear();
+                      setState(() {
+                        _isSearchBarOnFocus = false;
+                        _isShowingMediaList = false;
+                      });
+                    }
+                  } else {
+                    Navigator.of(context).pop();
+                  }
+                }
+              },
+              icon: const Icon(Icons.arrow_back_rounded)
+            ),
             title: Padding(
-              padding: const EdgeInsets.only(top: 8, bottom: 8, right: 40),
+              padding: const EdgeInsets.only(top: 8, bottom: 8, right: 48),
               child: Center(
                 child: Image.asset("images/mal-logo-full.png", height: 120, width: 120,),
               ),
             ),
-            bottom: _SearchBar(),
+            bottom: my.SearchBar(
+              focusNode: _focusNode,
+              debounceTimeInMilli: 1500,
+              controller: _textEditingController,
+              canPop: !_isSearchBarOnFocus,
+              onTap: () {
+                if (_isShowingMediaList) {
+                  setState(() {
+                    _isOnMediaListLoading = true;
+                    _isShowingMediaList = false;
+                  });
+                } else {
+                  setState(() {
+                    _isSearchBarOnFocus = true;
+                  });
+                }
+              },
+              onChange: (value) {
+
+              },
+              onSubmitted: (value) {
+                if (value.isNotEmpty) {
+                  _history.saveSearchHistory(value);
+                  _getHistory();
+                  setState(() {
+                    _isShowingMediaList = true;
+                  });
+                  if (_isOnMediaListLoading) {
+                    setState(() {
+                      _isOnMediaListLoading = false;
+                    });
+                  }
+                  if (_title != value) {
+                    setState(() {
+                      _title = value;
+                      _isTitleUpdated = true;
+                    });
+                    _fetchMedia();
+                  }
+                }
+              },
+              onPopInvoked: (b) {
+                if (_isOnMediaListLoading) {
+                  setState(() {
+                    _isShowingMediaList = true;
+                    _isOnMediaListLoading = false;
+                  });
+                } else {
+                  _scrollController.jumpTo(0);
+                  _textEditingController.clear();
+                  setState(() {
+                    _isSearchBarOnFocus = false;
+                    _isShowingMediaList = false;
+                  });
+                }
+              },
+            ),
           ),
-          SliverList(
+          !_isSearchBarOnFocus ? SliverList(
             delegate: SliverChildListDelegate(
               _categories().map((category) {
-                return _Bar(
+                return CategoryBar(
                   mediaCategory: category,
                   gradientColors: category.gradients,
-                  nodes: categoryNodes(category.index),
+                  nodes: category.category == "Rank" ? _intermediateRankingNodes : categoryNodes(category.index),
+                  isRanking: category.category == "Rank",
+                  onToggle: category.category == "Rank" ? (index) {
+                    if (index == 0) {
+                      setState(() {
+                        _intermediateRankingNodes = _rankingNodes;
+                      });
+                    } else {
+                      setState(() {
+                        _intermediateRankingNodes = _rankingNodesManga;
+                      });
+                    }
+                  } : null,
                 );
               }).toList(),
+            ),
+          ) : SliverToBoxAdapter(
+            child: !_isShowingMediaList ? SearchHistory(
+              searchesHistory: _searchesHistory,
+              onTap: (string) {
+                _focusNode.unfocus();
+                _textEditingController.text = string;
+                setState(() {
+                  _isShowingMediaList = true;
+                  if (_isOnMediaListLoading) {
+                    _isOnMediaListLoading = false;
+                  }
+                });
+                if (_title != string) {
+                  setState(() {
+                    _isTitleUpdated = true;
+                    _title = string;
+                  });
+                  _fetchMedia();
+                }
+              },
+              onDelete: _deleteHistory,
+              onDeleteAll: () => _deleteAllHistory(context),
+            ) : _nodes.isNotEmpty && !_isTitleUpdated ? MMediaList(nodes: _nodes, isAnime: true)
+              : SizedBox(
+                  height: MediaQuery.of(context).size.height - (kToolbarHeight + 46),
+                  child: const Center(
+                    child: CircularProgressIndicator(),
+                  ),
             ),
           ),
         ],
       ),
     );
   }
-}
-
-class _SearchBar extends StatelessWidget implements PreferredSizeWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.only(right: 16, left: 16, bottom: 2),
-      width: preferredSize.width,
-      height: preferredSize.height,
-      child: Card(
-        color: Colors.black54,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Padding(
-              padding: EdgeInsets.only(left: 8, top: 6, bottom: 6, right: 4),
-              child: Icon(Icons.search_rounded, color: Colors.white),
-            ),
-            const SizedBox(width: 6,),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 3),
-                child: TextField(
-                  cursorColor: Theme.of(context).textTheme.bodyMedium!.color!,
-                  decoration: const InputDecoration(
-                      border: InputBorder.none
-                  ),
-                ),
-              )
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  @override
-  Size get preferredSize => const Size.fromHeight(46.0);
-}
-
-class _Bar extends StatelessWidget {
-  final _MediaCategory mediaCategory;
-  final List<Color> gradientColors;
-  final List<dynamic> nodes;
-
-  const _Bar({
-    super.key,
-    required this.mediaCategory,
-    required this.gradientColors,
-    required this.nodes,
-  });
-
-  bool _isMediaNode(int index) {
-    if (nodes is List<MediaNode>) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  String _image(int index) {
-    if (_isMediaNode(index)) {
-      return nodes[index].mediaPicture.medium;
-    }
-    return nodes[index].node.mediaPicture.medium;
-  }
-
-  String _title(int index) {
-    if (_isMediaNode(index)) {
-      return nodes[index].title;
-    }
-    return nodes[index].node.title;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        width: MediaQuery.of(context).size.width,
-        height: MediaQuery.of(context).size.height / 3.5,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(colors: gradientColors),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: nodes.isNotEmpty ? Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Text(
-                  mediaCategory.category,
-                  style: Theme.of(context).textTheme.displayMedium!
-                      .copyWith(fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),
-                ),
-                const SizedBox(width: 4,),
-                const Padding(
-                  padding: EdgeInsets.only(top: 4),
-                  child: Icon(Icons.arrow_forward_rounded,),
-                ),
-              ],
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(8) ,
-                child: ListView.builder(
-                  itemExtent: 100,
-                  scrollDirection: Axis.horizontal,
-                  itemBuilder: (context, index) {
-                    String heroTag = const Uuid().v4();
-                    return Padding(
-                      padding: const EdgeInsets.only(left: 4, right: 4),
-                      child: GestureDetector(
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(builder: (context) {
-                            return MediaDetail(
-                              media: nodes is List<MediaNode> ?
-                                nodes[index] : MediaNodeRanked.toMediaNode(nodes[index]),
-                              isAnime: true,
-                              heroTag: heroTag,
-                              isContentSensitive: false
-                            );
-                          })
-                        ),
-                        child: Column(
-                          children: [
-                            Material(
-                                elevation: 10,
-                                shape: const RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.all(Radius.circular(8))
-                                ),
-                                child: Stack(
-                                  children: [
-                                    Hero(
-                                      tag: heroTag,
-                                      child: ClipRRect(
-                                        borderRadius: const BorderRadius.all(Radius.circular(8)),
-                                        child: Image.network(
-                                          _image(index),
-                                          height: 100,
-                                          width: 70,
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
-                                    ),
-                                    if (nodes is List<MediaNodeRanked>) Positioned(
-                                      child: Container(
-                                        decoration: const BoxDecoration(
-                                          color: Colors.black54,
-                                          borderRadius: BorderRadius.only(topLeft: Radius.circular(8))
-                                        ),
-                                        padding: const EdgeInsets.only(left: 2, right: 2),
-                                        child: Text(
-                                          "#${nodes[index].ranking.rank}",
-                                          style: Theme.of(context).textTheme.bodySmall!.copyWith(color: Colors.white)),
-                                      ),
-                                    ),
-                                    if (nodes is List<MediaNodeRanked>) Positioned(
-                                      bottom: 0,
-                                      right: 0,
-                                        child: Container(
-                                          color: Colors.black54,
-                                          padding: const EdgeInsets.only(right: 2),
-                                          child: Row(
-                                            children: [
-                                              const Icon(Icons.star_rounded, size: 10, color: Colors.white,),
-                                              Text(
-                                                "${nodes[index].node.mean}",
-                                                style: Theme.of(context).textTheme.bodySmall!.copyWith(color: Colors.white),
-                                              ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                )
-                            ),
-                            Text(
-                              _title(index),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 2,
-                              textAlign: TextAlign.center,
-                            )
-                          ],
-                        ),
-                      )
-                    );
-                  },
-                  itemCount: nodes.length,
-                ),
-              ),
-            ),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                mediaCategory.description,
-                style: Theme.of(context).textTheme.displaySmall!
-                    .copyWith(fontStyle: FontStyle.italic),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ) : BackdropFilter(
-          filter: ImageFilter.blur(sigmaY: 3, sigmaX: 3),
-          child: Center(
-            child: SpinKitThreeBounce(
-              color: Colors.grey.shade800,
-              size: 18,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MediaCategory {
-  final int index;
-  final String category;
-  final String description;
-  final String path;
-  final List<Color> gradients;
-  final Map<String, dynamic> queryParams;
-
-  const _MediaCategory({
-    required this.index,
-    required this.category,
-    required this.description,
-    required this.path,
-    required this.gradients,
-    required this.queryParams
-  });
 }

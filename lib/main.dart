@@ -73,13 +73,12 @@ class _AppState extends State<_App> {
 
   ThemeData _appTheme() {
     return ThemeData(
-      splashFactory: NoSplash.splashFactory,
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
         seedColor: Colors.white,
         primary: const Color.fromARGB(255, 46, 90, 136),
         background: Colors.white,
-        surface: Colors.white,
+        surface: const Color.fromARGB(255, 249, 246, 245),
         brightness: Brightness.light
       ),
       textTheme: const TextTheme(
@@ -115,6 +114,7 @@ class _AppState extends State<_App> {
           )
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        largeSizeConstraints: BoxConstraints(minHeight: 80, minWidth: 80),
         backgroundColor: Color.fromARGB(255, 46, 90, 136),
       ),
     );
