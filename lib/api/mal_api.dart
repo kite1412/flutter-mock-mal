@@ -1,5 +1,6 @@
 import '../model/data.dart';
 import '../model/media_node.dart';
+import '../model/update_media.dart';
 import '../model/user_information.dart';
 
 abstract class MalAPI {
@@ -14,4 +15,8 @@ abstract class MalAPI {
 
   //fetch media by id
   Future<MediaNode> findMediaById(int id, bool isAnime, {List<String> fields = const []});
+
+  Future<UpdateMedia> updateMedia(int mediaId, bool isAnime, Map<String, dynamic> body);
+
+  Future<bool> removeMedia(int mediaId, bool isAnime);
 }

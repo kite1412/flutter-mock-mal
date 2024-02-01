@@ -45,6 +45,12 @@ class MediaNode {
   @JsonKey(name: "my_list_status")
   UserMediaStatus? userMediaStatus;
   List<Author>? authors;
+  @JsonKey(name: "num_episodes")
+  int? numEpisodes;
+  @JsonKey(name: "num_chapters")
+  int? numChapters;
+  @JsonKey(name: "num_volumes")
+  int? numVolumes;
 
   MediaNode(this.id, this.title, this.mediaPicture);
 
@@ -62,7 +68,11 @@ class MediaNode {
       ..alternativeTitles = source.alternativeTitles
       ..startSeason = source.startSeason
       ..rating = source.rating
-      ..studios = source.studios;
+      ..studios = source.studios
+      ..userMediaStatus = source.userMediaStatus
+      ..numEpisodes = source.numEpisodes
+      ..numChapters = source.numChapters
+      ..numVolumes = source.numVolumes;
   }
 
   factory MediaNode.empty() {

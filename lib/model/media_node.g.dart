@@ -47,7 +47,10 @@ MediaNode _$MediaNodeFromJson(Map<String, dynamic> json) => MediaNode(
               json['my_list_status'] as Map<String, dynamic>)
       ..authors = (json['authors'] as List<dynamic>?)
           ?.map((e) => Author.fromJson(e as Map<String, dynamic>))
-          .toList();
+          .toList()
+      ..numEpisodes = json['num_episodes'] as int?
+      ..numChapters = json['num_chapters'] as int?
+      ..numVolumes = json['num_volumes'] as int?;
 
 Map<String, dynamic> _$MediaNodeToJson(MediaNode instance) => <String, dynamic>{
       'id': instance.id,
@@ -74,4 +77,7 @@ Map<String, dynamic> _$MediaNodeToJson(MediaNode instance) => <String, dynamic>{
       'studios': instance.studios,
       'my_list_status': instance.userMediaStatus,
       'authors': instance.authors,
+      'num_episodes': instance.numEpisodes,
+      'num_chapters': instance.numChapters,
+      'num_volumes': instance.numVolumes,
     };

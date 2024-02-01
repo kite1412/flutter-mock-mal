@@ -1,13 +1,18 @@
 import 'dart:ui';
 
+import 'package:anime_gallery/api/api_helper.dart';
+import 'package:anime_gallery/notifier/update_media_notifier.dart';
+import 'package:anime_gallery/util/global_constant.dart';
+import 'package:anime_gallery/widgets/media_display.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:provider/provider.dart';
 import 'package:toggle_switch/toggle_switch.dart';
 import 'package:uuid/uuid.dart';
 
 import '../model/media_node.dart';
 import '../model/node_with_rank.dart';
-import '../util/media_category.dart';
+import '../other/media_category.dart';
 import 'media_detail.dart';
 
 class CategoryBar extends StatefulWidget {

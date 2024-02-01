@@ -21,11 +21,6 @@ class _LoginPageState extends State<LoginPage> {
     await _methodChannel.invokeMethod<String>("authorization");
   }
 
-  void _saveAccessToken(String accessToken) async {
-    final sharedPreferences = await SharedPreferences.getInstance();
-    sharedPreferences.setString(GlobalConstant.spAccessToken, accessToken);
-  }
-
   @override
   void initState() {
     super.initState();
@@ -39,14 +34,30 @@ class _LoginPageState extends State<LoginPage> {
           _log.w("auth code is null, token access can't take place");
         }
       }
+
       if (call.method == "accessToken") {
         final accessToken = call.arguments as String?;
+        final sharedPreferences = await SharedPreferences.getInstance();
+        _log.i("access token is received");
         if (accessToken != null) {
           _log.i("access token is received");
-          _saveAccessToken(accessToken);
+          sharedPreferences.setString(GlobalConstant.spAccessToken, accessToken);
           widget.afterAuthComplete();
         } else {
           _log.w("access token is null, can't proceed to main menu");
+        }
+      }
+
+      if (call.method == "refreshToken") {
+        final refreshToken = call.arguments as String?;
+        final sharedPreferences = await SharedPreferences.getInstance();
+        _log.i("refresh token is received");
+        if (refreshToken != null) {
+          _log.i("refresh token is received");
+          sharedPreferences.setString(GlobalConstant.spRefreshToken, refreshToken);
+          widget.afterAuthComplete();
+        } else {
+          _log.w("refresh token is null");
         }
       }
     });

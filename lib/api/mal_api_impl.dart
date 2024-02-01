@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:anime_gallery/api/mal_api.dart';
 import 'package:anime_gallery/model/data.dart';
 import 'package:anime_gallery/model/media_node.dart';
+import 'package:anime_gallery/model/update_media.dart';
 import 'package:anime_gallery/util/global_constant.dart';
 import 'package:http/http.dart';
 import 'package:anime_gallery/api/constant.dart';
@@ -60,16 +61,15 @@ class MalAPIImpl implements MalAPI {
         });
       }
       fullPath = "$path$query";
-      _log.i(fullPath);
       try {
         final Response response = await get(Uri.parse("${MalConstant.uriString}$fullPath"), headers: _authHeader(token));
         final Map<String, dynamic> json = jsonDecode(response.body);
         dynamic data;
         data = !needRank ? Data.fromJson(json) : DataWithRank.fromJson(json);
-        _log.i("fetching media success");
+        _log.i("fetching media success with path: $fullPath");
         return data;
       } catch (e) {
-        _log.w("fail to fetch media");
+        _log.w("fail to fetch media with path: $fullPath");
         if (!needRank) {
           return Data.empty();
         } else {
@@ -210,5 +210,56 @@ class MalAPIImpl implements MalAPI {
         _log.w("access token is null");
         return Future.value(DataWithRank.empty());
       }
+  );
+
+  @override
+  Future<UpdateMedia> updateMedia(
+    int mediaId,
+    bool isAnime,
+    Map<String, dynamic> body,
+  ) => _getTokenAndPerformRequest(
+    tokenCallback: (token) async {
+      String path = isAnime ? "anime/" : "manga/";
+      path += "$mediaId/my_list_status";
+      final Response response = await patch(
+        Uri.parse("${MalConstant.uriString}/$path"),
+        headers: _authHeader(token)..addAll({
+          "Content-Type" : "application/x-www-form-urlencoded"
+        }),
+        body: _encodeBody(body)
+      );
+      final UpdateMedia updated = UpdateMedia.fromJson(jsonDecode(response.body));
+      _log.i("updated: ${updated.score}");
+      return updated;
+    },
+    onTokenNull: () {
+      _log.w("token is null, can't perform the request");
+      return Future.value(UpdateMedia());
+    }
+  );
+
+  String _encodeBody(Map<String, dynamic> body) {
+    return body.entries.map((e) {
+      return "${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value.toString())}";
+    }).join("&");
+  }
+
+  @override
+  Future<bool> removeMedia(int mediaId, bool isAnime) => _getTokenAndPerformRequest(
+    tokenCallback: (token) async {
+      final path = isAnime ? "anime/$mediaId/my_list_status" : "manga/$mediaId/my_list_status";
+      try {
+        await delete(Uri.parse("${MalConstant.uriString}/$path"), headers: _authHeader(token));
+        _log.i("delete media success with id: (isAnime: $isAnime) $mediaId");
+        return true;
+      } catch (e) {
+        _log.w("fail to delete media");
+        return false;
+      }
+    },
+    onTokenNull: () async {
+      _log.w("token is null");
+      return false;
+    }
   );
 }

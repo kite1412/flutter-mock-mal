@@ -9,6 +9,7 @@ class GlobalConstant {
     "Manga",
   ];
   static const spAccessToken = "accessToken";
+  static const spRefreshToken = "refreshToken";
 
   static const mandatoryFields = [
     "synopsis",
@@ -26,6 +27,8 @@ class GlobalConstant {
     "studios",
     "start_date",
     "end_date",
+    "num_episodes",
+    "pictures"
   ];
 
   static const mangaMandatoryFields = [
@@ -39,7 +42,10 @@ class GlobalConstant {
     "popularity",
     "my_list_status",
     "alternative_titles",
-    "authors{first_name, last_name}"
+    "authors{first_name, last_name}",
+    "num_chapters",
+    "num_volumes",
+    "pictures"
   ];
 
   static const spSearchHistory = "searches-history";

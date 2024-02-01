@@ -2,18 +2,23 @@ import 'dart:ui';
 
 import 'package:anime_gallery/api/api_helper.dart';
 import 'package:anime_gallery/model/node_with_rank.dart';
+import 'package:anime_gallery/notifier/update_media_notifier.dart';
 import 'package:anime_gallery/util/history.dart';
+import 'package:anime_gallery/util/show_dialog.dart';
+import 'package:anime_gallery/widgets/general_category.dart';
 import 'package:anime_gallery/widgets/media_card.dart';
 import 'package:anime_gallery/widgets/media_list.dart';
+import 'package:anime_gallery/widgets/ranked_category.dart';
 import 'package:anime_gallery/widgets/search_bar.dart' as my;
 import 'package:anime_gallery/util/global_constant.dart';
 import 'package:anime_gallery/widgets/search_history.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../model/media_node.dart';
-import '../util/media_category.dart';
+import '../other/media_category.dart';
 import 'category_bar.dart';
 import 'media_card_column.dart';
 
@@ -30,6 +35,8 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
   bool _isShowingMediaList = false;
   bool _isOnMediaListLoading = false;
   bool _isTitleUpdated = false;
+  bool _isClearButtonVisible = false;
+  bool _isRankShowingAnime = true;
   List<MediaNodeRanked> _rankingNodes = [];
   List<MediaNodeRanked> _rankingNodesManga = [];
   List<MediaNodeRanked> _intermediateRankingNodes = [];
@@ -175,7 +182,9 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
 
   void _fetchRankedManga() {
     MalAPIHelper.mediaWithCategory(false, _categories()[0].path, (nodes) {
-      _rankingNodesManga = nodes;
+      setState(() {
+        _rankingNodesManga = nodes;
+      });
     },
       queryParam: _categories()[0].queryParams,
       needRank: true,
@@ -217,36 +226,10 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
   }
 
   void _deleteAllHistory(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(
-            "Clear all recent history?",
-            style: Theme.of(context).textTheme.displaySmall,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                "Cancel",
-                style: Theme.of(context).textTheme.bodyLarge
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                _history.deleteAll();
-                _getHistory();
-                Navigator.of(context).pop();
-              },
-              child: Text(
-                "Yes",
-                style: Theme.of(context).textTheme.bodyLarge!.copyWith(color: Colors.red),)
-            ),
-          ],
-        );
-      },
-    );
+    mShowDialog(context, "Clear all recent history?", () {
+      _history.deleteAll();
+      _getHistory();
+    });
   }
 
   @override
@@ -271,18 +254,103 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          SliverAppBar(
-            floating: true,
-            pinned: true,
-            leading: IconButton(
-              onPressed: () {
-                if (_focusNode.hasFocus) {
-                  _focusNode.unfocus();
-                } else {
-                  if (_isSearchBarOnFocus) {
+      body: LayoutBuilder(
+        builder: (context, constraint) {
+          return CustomScrollView(
+            controller: _scrollController,
+            slivers: [
+              SliverAppBar(
+                floating: true,
+                pinned: true,
+                leading: IconButton(
+                    onPressed: () {
+                      if (_focusNode.hasFocus) {
+                        _focusNode.unfocus();
+                      } else {
+                        if (_isSearchBarOnFocus) {
+                          if (_isOnMediaListLoading) {
+                            setState(() {
+                              _isShowingMediaList = true;
+                              _isOnMediaListLoading = false;
+                            });
+                          } else {
+                            _scrollController.jumpTo(0);
+                            _textEditingController.clear();
+                            setState(() {
+                              _isSearchBarOnFocus = false;
+                              _isShowingMediaList = false;
+                              _isClearButtonVisible = false;
+                            });
+                          }
+                        } else {
+                          Navigator.of(context).pop();
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.arrow_back_rounded)
+                ),
+                title: Padding(
+                  padding: const EdgeInsets.only(top: 8, bottom: 8, right: 48),
+                  child: Center(
+                    child: Image.asset("images/mal-logo-full.png", height: 120, width: 120,),
+                  ),
+                ),
+                bottom: my.SearchBar(
+                  focusNode: _focusNode,
+                  debounceTimeInMilli: 1500,
+                  controller: _textEditingController,
+                  canPop: !_isSearchBarOnFocus,
+                  onTap: () {
+                    if (_isShowingMediaList) {
+                      setState(() {
+                        _isOnMediaListLoading = true;
+                        _isShowingMediaList = false;
+                      });
+                    } else {
+                      setState(() {
+                        _isSearchBarOnFocus = true;
+                      });
+                    }
+                  },
+                  onChange: (value) {
+                    if (value.isEmpty) {
+                      setState(() {
+                        _isClearButtonVisible = false;
+                      });
+                    } else {
+                      setState(() {
+                        _isClearButtonVisible = true;
+                      });
+                    }
+                  },
+                  onSubmitted: (value) {
+                    if (value.isNotEmpty) {
+                      _history.saveSearchHistory(value);
+                      _getHistory();
+                      setState(() {
+                        _isShowingMediaList = true;
+                      });
+                      if (_isOnMediaListLoading) {
+                        setState(() {
+                          _isOnMediaListLoading = false;
+                        });
+                      }
+                      if (_title != value) {
+                        setState(() {
+                          _title = value;
+                          _isTitleUpdated = true;
+                        });
+                        _fetchMedia();
+                      }
+                    }
+                  },
+                  onClear: () {
+                    _textEditingController.clear();
+                    setState(() {
+                      _isClearButtonVisible = false;
+                    });
+                  },
+                  onPopInvoked: (b) {
                     if (_isOnMediaListLoading) {
                       setState(() {
                         _isShowingMediaList = true;
@@ -294,133 +362,85 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
                       setState(() {
                         _isSearchBarOnFocus = false;
                         _isShowingMediaList = false;
+                        _isClearButtonVisible = false;
                       });
                     }
-                  } else {
-                    Navigator.of(context).pop();
-                  }
-                }
-              },
-              icon: const Icon(Icons.arrow_back_rounded)
-            ),
-            title: Padding(
-              padding: const EdgeInsets.only(top: 8, bottom: 8, right: 48),
-              child: Center(
-                child: Image.asset("images/mal-logo-full.png", height: 120, width: 120,),
+                  },
+                  isClearButtonVisible: _isClearButtonVisible && !_isShowingMediaList,
+                  needDebounce: false,
+                ),
               ),
-            ),
-            bottom: my.SearchBar(
-              focusNode: _focusNode,
-              debounceTimeInMilli: 1500,
-              controller: _textEditingController,
-              canPop: !_isSearchBarOnFocus,
-              onTap: () {
-                if (_isShowingMediaList) {
-                  setState(() {
-                    _isOnMediaListLoading = true;
-                    _isShowingMediaList = false;
-                  });
-                } else {
-                  setState(() {
-                    _isSearchBarOnFocus = true;
-                  });
-                }
-              },
-              onChange: (value) {
-
-              },
-              onSubmitted: (value) {
-                if (value.isNotEmpty) {
-                  _history.saveSearchHistory(value);
-                  _getHistory();
-                  setState(() {
-                    _isShowingMediaList = true;
-                  });
-                  if (_isOnMediaListLoading) {
+              !_isSearchBarOnFocus ? SliverList(
+                delegate: SliverChildListDelegate(
+                    [
+                      RankCategory(
+                          nodes: _intermediateRankingNodes,
+                          isAnime: _isRankShowingAnime,
+                          mediaCategory: _categories()[0],
+                          gradientColors: _categories()[0].gradients,
+                          onToggle: (int index) {
+                            if (index == 0) {
+                              setState(() {
+                                _intermediateRankingNodes = _rankingNodes;
+                                _isRankShowingAnime = true;
+                              });
+                            } else {
+                              setState(() {
+                                _intermediateRankingNodes = _rankingNodesManga;
+                                _isRankShowingAnime = false;
+                              });
+                            }
+                          }
+                      ),
+                      GeneralCategory(
+                        nodes: _suggestionsNodes,
+                        mediaCategory: _categories()[1],
+                        gradientColors: _categories()[1].gradients,
+                      ),
+                      GeneralCategory(
+                        nodes: _seasonalNodes,
+                        mediaCategory: _categories()[2],
+                        gradientColors: _categories()[2].gradients,
+                      ),
+                    ]
+                ),
+              ) : !_isShowingMediaList ? SliverToBoxAdapter(
+                child:  SearchHistory(
+                  searchesHistory: _searchesHistory,
+                  onTap: (string) {
+                    _focusNode.unfocus();
+                    _textEditingController.text = string;
                     setState(() {
-                      _isOnMediaListLoading = false;
+                      _isClearButtonVisible = true;
+                      _isShowingMediaList = true;
+                      if (_isOnMediaListLoading) {
+                        _isOnMediaListLoading = false;
+                      }
                     });
-                  }
-                  if (_title != value) {
-                    setState(() {
-                      _title = value;
-                      _isTitleUpdated = true;
-                    });
-                    _fetchMedia();
-                  }
-                }
-              },
-              onPopInvoked: (b) {
-                if (_isOnMediaListLoading) {
-                  setState(() {
-                    _isShowingMediaList = true;
-                    _isOnMediaListLoading = false;
-                  });
-                } else {
-                  _scrollController.jumpTo(0);
-                  _textEditingController.clear();
-                  setState(() {
-                    _isSearchBarOnFocus = false;
-                    _isShowingMediaList = false;
-                  });
-                }
-              },
-            ),
-          ),
-          !_isSearchBarOnFocus ? SliverList(
-            delegate: SliverChildListDelegate(
-              _categories().map((category) {
-                return CategoryBar(
-                  mediaCategory: category,
-                  gradientColors: category.gradients,
-                  nodes: category.category == "Rank" ? _intermediateRankingNodes : categoryNodes(category.index),
-                  isRanking: category.category == "Rank",
-                  onToggle: category.category == "Rank" ? (index) {
-                    if (index == 0) {
+                    if (_title != string) {
                       setState(() {
-                        _intermediateRankingNodes = _rankingNodes;
+                        _isTitleUpdated = true;
+                        _title = string;
                       });
-                    } else {
-                      setState(() {
-                        _intermediateRankingNodes = _rankingNodesManga;
-                      });
+                      _fetchMedia();
                     }
-                  } : null,
-                );
-              }).toList(),
-            ),
-          ) : SliverToBoxAdapter(
-            child: !_isShowingMediaList ? SearchHistory(
-              searchesHistory: _searchesHistory,
-              onTap: (string) {
-                _focusNode.unfocus();
-                _textEditingController.text = string;
-                setState(() {
-                  _isShowingMediaList = true;
-                  if (_isOnMediaListLoading) {
-                    _isOnMediaListLoading = false;
-                  }
-                });
-                if (_title != string) {
-                  setState(() {
-                    _isTitleUpdated = true;
-                    _title = string;
-                  });
-                  _fetchMedia();
-                }
-              },
-              onDelete: _deleteHistory,
-              onDeleteAll: () => _deleteAllHistory(context),
-            ) : _nodes.isNotEmpty && !_isTitleUpdated ? MMediaList(nodes: _nodes, isAnime: true)
-              : SizedBox(
+                  },
+                  onDelete: _deleteHistory,
+                  onDeleteAll: () => _deleteAllHistory(context),
+                )
+              ) : _nodes.isNotEmpty && !_isTitleUpdated ? MMediaList(nodes: _nodes, isAnime: true,)
+              : SliverToBoxAdapter(
+                child: SizedBox(
                   height: MediaQuery.of(context).size.height - (kToolbarHeight + 46),
                   child: const Center(
                     child: CircularProgressIndicator(),
                   ),
-            ),
-          ),
-        ],
-      ),
+                ),
+              )
+            ],
+          );
+        }
+      )
     );
   }
 }

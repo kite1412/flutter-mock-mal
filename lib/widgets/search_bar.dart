@@ -13,8 +13,12 @@ class SearchBar extends StatefulWidget implements PreferredSizeWidget {
   final void Function(String) onChange;
   final void Function(String) onSubmitted;
   final void Function(bool) onPopInvoked;
+  final VoidCallback onClear;
   final TextEditingController? controller;
   final FocusNode? focusNode;
+  final bool isClearButtonVisible;
+  // whether to use debounce effect on [onChange]
+  final bool? needDebounce;
 
   const SearchBar({
     super.key,
@@ -23,9 +27,12 @@ class SearchBar extends StatefulWidget implements PreferredSizeWidget {
     required this.onTap,
     required this.onChange,
     required this.onSubmitted,
+    required this.onClear,
     required this.onPopInvoked,
     this.controller,
-    this.focusNode
+    this.focusNode,
+    required this.isClearButtonVisible,
+    this.needDebounce,
   });
 
   @override
@@ -77,9 +84,13 @@ class _SearchBarState extends State<SearchBar> {
                     widget.onTap();
                   },
                   onChanged: (string) {
-                    _debounce.call(() {
+                    if (widget.needDebounce != null && widget.needDebounce!) {
+                      _debounce.call(() {
+                        widget.onChange(string);
+                      });
+                    } else {
                       widget.onChange(string);
-                    });
+                    }
                   },
                   maxLines: 1,
                   onSubmitted: widget.onSubmitted,
@@ -95,7 +106,10 @@ class _SearchBarState extends State<SearchBar> {
                 ),
               ),
             ),
-            const SizedBox(width: 8,)
+            widget.isClearButtonVisible ? IconButton(
+                onPressed: widget.onClear,
+                icon: const Icon(Icons.clear, color: Colors.white,)
+            ) : const SizedBox(),
           ],
         ),
       ),

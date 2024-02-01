@@ -23,8 +23,10 @@ class InfoBar {
         end =  "Finished";
         break;
       case "currently_airing":
-      case "currently_publishing":
         end = "Airing";
+        break;
+      case "currently_publishing":
+        end = "Publishing";
         break;
       case "not_yet_aired":
       case "not_yet_published":
@@ -71,6 +73,9 @@ class InfoBar {
       case "manhua":
         color = const Color.fromARGB(255, 140, 140, 140);
         break;
+      case "pv":
+        color = Colors.grey.shade600;
+        break;
     }
     return color;
   }
@@ -109,7 +114,7 @@ class InfoBar {
         borderRadius: BorderRadius.all(Radius.circular(borderRadius)),
       ),
       child: Text(
-        _mapMediaType(text),
+        _mapField(text),
         style: Theme.of(context).textTheme.bodySmall!.copyWith(color: Colors.white),
       ),
     );
@@ -133,7 +138,7 @@ class InfoBar {
     );
   }
 
-  static String _mapMediaType(String field) {
+  static String _mapField(String field) {
     if (field.contains("_")) {
       final strings = field.split("_");
       return "${strings[0][0].toUpperCase()}${strings[0].substring(1)}"
@@ -155,7 +160,7 @@ class InfoBar {
       infoBar(
         context,
         _mediaTypeColor(assertNullStringField(media.mediaType)),
-        _mapMediaType(assertNullStringField(media.mediaType))
+        _mapField(assertNullStringField(media.mediaType))
       ),
       const SizedBox(width: 8,),
       infoBar(

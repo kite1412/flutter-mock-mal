@@ -1,4 +1,5 @@
 import 'package:anime_gallery/model/media_picture.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 

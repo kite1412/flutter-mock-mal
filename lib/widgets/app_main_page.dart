@@ -2,12 +2,15 @@ import 'package:anime_gallery/model/user_information.dart';
 import 'package:anime_gallery/util/global_constant.dart';
 import 'package:anime_gallery/widgets/discovery_page.dart';
 import 'package:anime_gallery/widgets/media_card.dart';
+import 'package:anime_gallery/widgets/media_toggle.dart';
 import 'package:anime_gallery/widgets/profile_detail.dart';
+import 'package:anime_gallery/widgets/user_list.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:logger/logger.dart';
+import 'package:provider/provider.dart';
 
-typedef Generic<R, T> = R Function(T);
+import '../notifier/update_media_notifier.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key, required this.info});
@@ -77,13 +80,13 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
+  // TODO use slivers instead
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: GlobalConstant.tabs.length,
       child: Scaffold(
         bottomNavigationBar: NavigationBar(
-          height: 70.0,
           selectedIndex: _selectedIndex,
           onDestinationSelected: (index) => _updateIndex(index),
           destinations: <Widget>[
@@ -102,57 +105,58 @@ class _MainPageState extends State<MainPage> {
         body: [
           TabBarView(
             children: [
+              // TODO(change ot MMediaList and set the UpdateMediaNotifier.userListShowingAnime to true at init)
               MediaList(isAnime: true, appBarListener: (controller) => _adjustAppBarSize(controller)),
               MediaList(isAnime: false, appBarListener: (controller) => _adjustAppBarSize(controller)),
             ],
           ),
-          const Placeholder(),
+          UserList(userInfo: userInfo, onProfileTap: () => _showProfile(context)),
         ][_selectedIndex],
-        appBar: AppBar(
-          toolbarHeight: _appBarHeight,
-          bottom: _selectedIndex == 0 ? TabBar(
-            splashFactory: NoSplash.splashFactory,
-            tabs: GlobalConstant.tabs.map((e) {
-              return Tab(text: e,);
-            }).toList(),
-          ) : null,
-          title: Padding(
-            padding: const EdgeInsets.all(8),
-            child: Center(
-              child: Image.asset("images/mal-logo-full.png", height: 120, width: 120,),
-            ),
-          ),
-          leading: Padding(
-              padding: const EdgeInsets.all(8),
-              child: IconButton(
-                icon: const Icon(Icons.favorite_outline),
-                onPressed: () {
-                  //TODO show user's favorite anime and manga
-                },
-              )
-          ),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: GestureDetector(
-                onTap: () {
-                  _showProfile(context);
-                },
-                child: Hero(
-                  tag: "profile-pic",
-                  child: ClipOval(
-                    child: Image(
-                        height: 40.0,
-                        width: 40.0,
-                        image: Image.network(userInfo.picture).image
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        floatingActionButton: FloatingActionButton.large(
+        // appBar: AppBar(
+        //   toolbarHeight: _appBarHeight,
+        //   bottom: _selectedIndex == 0 ? TabBar(
+        //     splashFactory: NoSplash.splashFactory,
+        //     tabs: GlobalConstant.tabs.map((e) {
+        //       return Tab(text: e,);
+        //     }).toList(),
+        //   ) : null,
+        //   title: Padding(
+        //     padding: const EdgeInsets.all(8),
+        //     child: Center(
+        //       child: Image.asset("images/mal-logo-full.png", height: 120, width: 120,),
+        //     ),
+        //   ),
+        //   leading: Padding(
+        //       padding: const EdgeInsets.all(8),
+        //       child: IconButton(
+        //         icon: const Icon(Icons.favorite_outline),
+        //         onPressed: () {
+        //           //TODO show user's favorite anime and manga
+        //         },
+        //       )
+        //   ),
+        //   actions: [
+        //     Padding(
+        //       padding: const EdgeInsets.all(8),
+        //       child: GestureDetector(
+        //         onTap: () {
+        //           _showProfile(context);
+        //         },
+        //         child: Hero(
+        //           tag: "profile-pic",
+        //           child: ClipOval(
+        //             child: Image(
+        //                 height: 40.0,
+        //                 width: 40.0,
+        //                 image: Image.network(userInfo.picture).image
+        //             ),
+        //           ),
+        //         ),
+        //       ),
+        //     ),
+        //   ],
+        // ),
+        floatingActionButton: _selectedIndex == 0 ? FloatingActionButton.large(
           onPressed: () {
             setState(() {
               Navigator.of(context).push(
@@ -178,7 +182,7 @@ class _MainPageState extends State<MainPage> {
             ),
             child: const Icon(Icons.search_rounded, color: Colors.white, size: 40,),
           )
-        ),
+        ) : null,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       ),
     );

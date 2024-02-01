@@ -1,13 +1,18 @@
 import 'package:anime_gallery/api/api_helper.dart';
+import 'package:anime_gallery/notifier/update_media_notifier.dart';
 import 'package:anime_gallery/util/global_constant.dart';
 import 'package:anime_gallery/widgets/app_main_page.dart';
 import 'package:anime_gallery/widgets/login_page.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(
-    const _App(),
+    ChangeNotifierProvider(
+      create: (context) => UpdateMediaNotifier(),
+      child: const _App(),
+    )
   );
 }
 
@@ -31,7 +36,7 @@ class _AppState extends State<_App> {
               const SizedBox(height: 8.0,),
               Text(
                 "Please Wait...",
-                style: Theme.of(context).textTheme.displayMedium!.copyWith(fontStyle: FontStyle.italic),
+                style: Theme.of(context).textTheme.bodyLarge!
               ),
             ],
           ),
@@ -79,7 +84,8 @@ class _AppState extends State<_App> {
         primary: const Color.fromARGB(255, 46, 90, 136),
         background: Colors.white,
         surface: const Color.fromARGB(255, 249, 246, 245),
-        brightness: Brightness.light
+        brightness: Brightness.light,
+        surfaceTint: const Color.fromARGB(255, 249, 246, 245),
       ),
       textTheme: const TextTheme(
         labelSmall: TextStyle(fontFamily: "Cabin", color: Colors.black),
@@ -97,13 +103,15 @@ class _AppState extends State<_App> {
           } else { return const TextStyle(color: Colors.grey); }
         }),
         indicatorColor: const Color.fromARGB(255, 46, 90, 136),
+        height: 70
       ),
       tabBarTheme: const TabBarTheme(
+        splashFactory: NoSplash.splashFactory,
         indicatorColor: Color.fromARGB(255, 46, 90, 136),
         labelColor: Color.fromARGB(255, 46, 90, 136),
         dividerColor: Colors.white,
-        labelStyle: TextStyle(fontSize: 18, fontFamily: "Cabin"),
-        unselectedLabelStyle: TextStyle(fontSize: 16, fontFamily: "Cabin"),
+        labelStyle: TextStyle(fontSize: 18, fontFamily: "Cabin", fontWeight: FontWeight.bold),
+        unselectedLabelStyle: TextStyle(fontSize: 16, fontFamily: "Cabin", fontWeight: FontWeight.bold),
       ),
       iconTheme: const IconThemeData(
         color: Colors.black
@@ -117,17 +125,21 @@ class _AppState extends State<_App> {
         largeSizeConstraints: BoxConstraints(minHeight: 80, minWidth: 80),
         backgroundColor: Color.fromARGB(255, 46, 90, 136),
       ),
+      snackBarTheme: const SnackBarThemeData(
+        closeIconColor: Colors.white
+      )
     );
   }
 
   ThemeData _darkTheme() {
     return ThemeData(
       tabBarTheme: const TabBarTheme(
+        splashFactory: NoSplash.splashFactory,
         indicatorColor: Color.fromARGB(255, 46, 90, 136),
         labelColor: Color.fromARGB(255, 46, 90, 136),
         dividerColor: Color.fromARGB(255, 30, 30, 30),
-        labelStyle: TextStyle(fontSize: 18, fontFamily: "Cabin"),
-        unselectedLabelStyle: TextStyle(fontSize: 16, fontFamily: "Cabin"),
+        labelStyle: TextStyle(fontSize: 18, fontFamily: "Cabin", fontWeight: FontWeight.bold),
+        unselectedLabelStyle: TextStyle(fontSize: 16, fontFamily: "Cabin", fontWeight: FontWeight.bold),
       ),
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
@@ -137,7 +149,7 @@ class _AppState extends State<_App> {
         surface: const Color.fromARGB(255, 35, 35, 35),
         primary: const Color.fromARGB(255, 46, 90, 136),
         secondary: const Color.fromARGB(255, 46, 90, 136),
-        brightness: Brightness.dark
+        brightness: Brightness.dark,
       ),
       textTheme: const TextTheme(
         labelSmall: TextStyle(fontFamily: "Cabin", color: Colors.white),
@@ -155,18 +167,22 @@ class _AppState extends State<_App> {
           } else { return const TextStyle(color: Colors.grey); }
         }),
         indicatorColor: const Color.fromARGB(255, 46, 90, 136),
+        height: 70
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         largeSizeConstraints: BoxConstraints(minHeight: 80, minWidth: 80),
         backgroundColor: Color.fromARGB(255, 46, 90, 136),
       ),
       iconTheme: const IconThemeData(
-          color: Colors.white
+        color: Colors.white
       ),
       iconButtonTheme: const IconButtonThemeData(
-          style: ButtonStyle(
-            iconColor: MaterialStatePropertyAll(Colors.white),
-          )
+        style: ButtonStyle(
+          iconColor: MaterialStatePropertyAll(Colors.white),
+        )
+      ),
+      snackBarTheme: const SnackBarThemeData(
+        closeIconColor: Colors.white
       )
     );
   }

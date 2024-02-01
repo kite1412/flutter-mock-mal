@@ -1,8 +1,11 @@
 import 'package:anime_gallery/api/api_helper.dart';
+import 'package:anime_gallery/model/update_media.dart';
+import 'package:anime_gallery/notifier/update_media_notifier.dart';
 import 'package:anime_gallery/util/global_constant.dart';
 import 'package:anime_gallery/widgets/media_detail.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
+import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../model/media_node.dart';
 import '../util/info_bar.dart';
@@ -28,26 +31,6 @@ class _MediaListState extends State<MediaList> {
   List<MediaNode> _nodes = [];
   final ScrollController scrollController = ScrollController();
 
-  @override
-  void initState() {
-    super.initState();
-    setState(() {
-      _loadingState = true;
-    });
-    _fetchMedia();
-    _log.i("from init state");
-    scrollController.addListener(_scrollListener);
-    scrollController.addListener(() {
-      widget.appBarListener(scrollController);
-    });
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    scrollController.dispose();
-  }
-
   void _fetchMedia() {
     MalAPIHelper.media(
       widget.isAnime,
@@ -56,7 +39,6 @@ class _MediaListState extends State<MediaList> {
         setState(() {
           _loadingState = false;
         });
-        _log.i(_nodes.isEmpty);
       },
       queryParam: {
         "q" : "High school",
@@ -127,9 +109,47 @@ class _MediaListState extends State<MediaList> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    setState(() {
+      _loadingState = true;
+    });
+    _fetchMedia();
+    _log.i("from init state");
+    scrollController.addListener(_scrollListener);
+    scrollController.addListener(() {
+      widget.appBarListener(scrollController);
+    });
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      Provider.of<UpdateMediaNotifier>(context ,listen: false).userListShowingAnime = true;
+      _log.i("userList, isAnime: ${Provider.of<UpdateMediaNotifier>(context, listen: false).userListShowingAnime}");
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    scrollController.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     List<MediaCard> nodes = _nodes.map((e) {
-      return MediaCard(mediaNode: e, isAnime: widget.isAnime,);
+      return MediaCard(
+        media: e,
+        isAnime: widget.isAnime,
+        informOnUpdate: (newMedia) {
+          List<MediaNode> mapped = _nodes.map((e){
+            if (e.id == newMedia.id) {
+              return newMedia;
+            }
+            return e;
+          }).toList();
+          setState(() {
+            _nodes = mapped;
+          });
+        },
+      );
     }).toList();
     return _loadingState ? const Wrap(
       alignment: WrapAlignment.center,
@@ -157,34 +177,40 @@ class _MediaListState extends State<MediaList> {
         ),
       );
     }
-    return nodes.isNotEmpty ? ListView.builder(
-      itemBuilder: (context, index) {
-        return contents[index];
-      },
-      itemCount: contents.length,
+    return nodes.isNotEmpty ? ListView(
       padding: const EdgeInsets.only(top: 8, bottom: 8),
       controller: scrollController,
+      children: nodes
     ) : Center(child: Text("No Media Found", style: Theme.of(context).textTheme.displaySmall,),);
   }
 }
 
 class MediaCard extends StatefulWidget {
-  const MediaCard({super.key, required this.mediaNode, required this.isAnime});
-  final MediaNode mediaNode;
+  final MediaNode media;
   final bool isAnime;
+  final void Function(MediaNode) informOnUpdate;
+
+  const MediaCard({
+    super.key,
+    required this.media,
+    required this.isAnime,
+    required this.informOnUpdate
+  });
 
   @override
   State<MediaCard> createState() => _MediaCardState();
 }
 
 class _MediaCardState extends State<MediaCard> {
+  MediaNode _media = MediaNode.empty();
   final _heroTag = const Uuid().v4();
   var _isContentSensitive = false;
+  final Logger _log = Logger();
 
   Widget _showWarning(BuildContext context) {
-    if (widget.mediaNode.genres != null) {
+    if (_media.genres != null) {
       String warningType = "";
-      for (var value in widget.mediaNode.genres!) {
+      for (var value in _media.genres!) {
         switch(value.name) {
           case "Ecchi":
             warningType = "Ecchi";
@@ -212,6 +238,69 @@ class _MediaCardState extends State<MediaCard> {
     return const SizedBox();
   }
 
+  Widget _mediaStatusBar(BuildContext context) {
+    var userStatus = _media.userMediaStatus!;
+    Color conColor = Colors.transparent;
+    String status = "";
+    switch (userStatus.status) {
+      case "watching":
+        conColor = const Color.fromARGB(255, 70, 180, 90);
+        status = "Watching";
+        break;
+      case "reading":
+        conColor = const Color.fromARGB(255, 70, 180, 90);
+        status = "Reading";
+        break;
+      case "completed":
+        conColor = const Color.fromARGB(255, 46, 90, 136);
+        status = "Completed";
+        break;
+      case "on_hold":
+        conColor = const Color.fromARGB(255, 255, 191, 0);
+        status = "On Hold";
+        break;
+      case "dropped":
+        conColor = const Color.fromARGB(255, 140, 0, 0);
+        status = "Dropped";
+        break;
+      case "plan_to_watch":
+        conColor = Colors.grey.shade500;
+        status = "Plan To Watch";
+        break;
+      case "plan_to_read":
+        conColor = Colors.grey.shade500;
+        status = "Plan To Read";
+        break;
+    }
+    return InfoBar.infoBar(context, conColor, status);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _media = widget.media;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final updatedMediaId = Provider.of<UpdateMediaNotifier>(context).updatedMediaId;
+    if (updatedMediaId != -1 && updatedMediaId == _media.id) {
+      MalAPIHelper.fetchMediaById(
+        _media.id,
+        widget.isAnime,
+        (updatedNode) {
+          setState(() {
+            _media = updatedNode;
+          });
+          Provider.of<UpdateMediaNotifier>(context, listen: false).updatedMediaId = -1;
+          widget.informOnUpdate(updatedNode);
+        },
+        fields: widget.isAnime ? GlobalConstant.mandatoryFields : GlobalConstant.mangaMandatoryFields      );
+      _log.i("from media card");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     TextStyle? tStyle = Theme.of(context).textTheme.displaySmall?.copyWith(fontWeight: FontWeight.bold);
@@ -219,6 +308,8 @@ class _MediaCardState extends State<MediaCard> {
     return Padding(
       padding: const EdgeInsets.only(left: 8, right: 8),
       child: Card(
+        color: Theme.of(context).colorScheme.background,
+        elevation: 0,
         child: InkResponse(
           splashColor: Colors.grey.shade800,
           highlightShape: BoxShape.rectangle,
@@ -232,7 +323,7 @@ class _MediaCardState extends State<MediaCard> {
             MaterialPageRoute(
                builder: (context) {
                  return MediaDetail(
-                   media: widget.mediaNode,
+                   media: _media,
                    isAnime: widget.isAnime,
                    heroTag: _heroTag,
                    isContentSensitive: _isContentSensitive,
@@ -248,7 +339,7 @@ class _MediaCardState extends State<MediaCard> {
                   Hero(
                     tag: _heroTag,
                     child: Image(
-                      image: Image.network(widget.mediaNode.mediaPicture.medium).image,
+                      image: Image.network(_media.mediaPicture.medium).image,
                       height: 140,
                       width: 110,
                       fit: BoxFit.cover,
@@ -263,7 +354,7 @@ class _MediaCardState extends State<MediaCard> {
                         children: [
                           const Icon(Icons.star_rounded, size: 12, color: Colors.white,),
                           Text(
-                            InfoBar.assertNullNumField(widget.mediaNode.mean).toString(),
+                            InfoBar.assertNullNumField(_media.mean).toString(),
                             style: Theme.of(context).textTheme.bodySmall!.copyWith(color: Colors.white),),
                         ],
                       ),
@@ -293,14 +384,14 @@ class _MediaCardState extends State<MediaCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                widget.mediaNode.title,
+                _media.title,
                 style: tStyle,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 4,),
               Text(
-                InfoBar.assertNullStringField(widget.mediaNode.synopsis),
+                InfoBar.assertNullStringField(_media.synopsis),
                 style: cStyle,
                 overflow: TextOverflow.ellipsis,
                 maxLines: 4,
@@ -308,8 +399,8 @@ class _MediaCardState extends State<MediaCard> {
               Expanded(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
-                  children: InfoBar.bars(widget.mediaNode, context)..add(
-                    widget.mediaNode.userMediaStatus != null ?
+                  children: InfoBar.bars(_media, context)..add(
+                    _media.userMediaStatus != null ?
                       Expanded(
                         child: Wrap(
                           alignment: WrapAlignment.end,
@@ -324,34 +415,5 @@ class _MediaCardState extends State<MediaCard> {
         ),
       )
     );
-  }
-
-  Widget _mediaStatusBar(BuildContext context) {
-    var userStatus = widget.mediaNode.userMediaStatus!;
-    Color conColor = Colors.transparent;
-    String status = "";
-    switch (userStatus.status) {
-      case "watching":
-        conColor = const Color.fromARGB(255, 70, 180, 90);
-        status = "Watching";
-        break;
-      case "completed":
-        conColor = const Color.fromARGB(255, 46, 90, 136);
-        status = "Completed";
-        break;
-      case "on_hold":
-        conColor = const Color.fromARGB(255, 255, 191, 0);
-        status = "On Hold";
-        break;
-      case "dropped":
-        conColor = const Color.fromARGB(255, 140, 0, 0);
-        status = "Dropped";
-        break;
-      case "plan_to_watch":
-        conColor = Colors.grey.shade500;
-        status = "Plan To Watch";
-        break;
-    }
-    return InfoBar.infoBar(context, conColor, status);
   }
 }

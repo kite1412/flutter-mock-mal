@@ -1,6 +1,13 @@
+import 'dart:convert';
+
+import 'package:anime_gallery/api/constant.dart';
 import 'package:anime_gallery/api/mal_api_impl.dart';
 import 'package:anime_gallery/model/data_with_node_ranked.dart';
 import 'package:anime_gallery/model/node_with_rank.dart';
+import 'package:anime_gallery/model/update_media.dart';
+import 'package:anime_gallery/other/media_status.dart';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart';
 import 'package:logger/logger.dart';
 
 import '../model/data.dart';
@@ -144,9 +151,66 @@ class MalAPIHelper {
   static void fetchMediaById(
     int id,
     bool isAnime,
-    ApiCallback<MediaNode> callback
+    ApiCallback<MediaNode> callback,
+    {List<String>? fields}
   ) async {
     final MalAPI api = MalAPIImpl();
-    callback(await api.findMediaById(id, isAnime, fields: _mediaFields));
+    callback(await api.findMediaById(id, isAnime, fields: fields ?? _mediaFields));
+  }
+
+  static void updateMedia(
+    int mediaId,
+    bool isAnime,
+    void Function(UpdateMedia) callback,
+    {String? status,
+    int? score,
+    int? progress}
+  ) async {
+    final MalAPI api = MalAPIImpl();
+    Map<String, dynamic> body = isAnime ? UpdateMedia.anime(status, score, progress)
+        : UpdateMedia.manga(status, score, progress);
+
+    try {
+      final UpdateMedia updated = await api.updateMedia(mediaId, isAnime, body);
+      _log.i("update media success");
+      callback(updated);
+    } catch (e) {
+      _log.e(e);
+      _log.i("fail to updating media");
+    }
+  }
+
+  static void removeMedia(
+    int mediaId,
+    bool isAnime,
+    void Function(bool) callback
+  ) async {
+    final MalAPI api = MalAPIImpl();
+    final isUpdated = await api.removeMedia(mediaId, isAnime);
+    callback(isUpdated);
+  }
+
+  static void userMedia(
+    bool isAnime,
+    Map<String, dynamic> queryParams,
+    ApiCallback<List<MediaNode>> callback,
+    {String? status,
+    String? sort,}
+  ) async {
+    String path = isAnime ? "users/@me/animelist" : "users/@me/mangalist";
+    queryParams.addAll({
+      if (status != null) "status" : status,
+      if (sort != null) "sort" : sort
+    });
+    final MalAPI api = MalAPIImpl();
+    final List<MediaNode> nodes = [];
+    try {
+      final Data data = await api.fetchMedia(path, queryParams);
+      _extractMediaNodes(nodes, data);
+      _log.i("success getting user media list with length: ${nodes.length}");
+      callback(nodes);
+    } catch (e) {
+      _log.e(e);
+    }
   }
 }

@@ -1,11 +1,16 @@
 import 'package:anime_gallery/api/api_helper.dart';
 import 'package:anime_gallery/model/alternative_titles.dart';
+import 'package:anime_gallery/model/update_media.dart';
 import 'package:anime_gallery/model/user_media_status.dart';
+import 'package:anime_gallery/notifier/update_media_notifier.dart';
+import 'package:anime_gallery/util/global_constant.dart';
+import 'package:anime_gallery/widgets/edit_media_page.dart';
 import 'package:anime_gallery/widgets/swipeable_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
+import 'package:provider/provider.dart';
 import 'dart:ui' as ui;
 import '../model/media_node.dart';
 import '../model/media_picture.dart';
@@ -36,42 +41,49 @@ class _MediaDetailState extends State<MediaDetail> {
   bool _isAbleExpandSynopsis = false;
   bool _isShowingFullSynopsis = false;
   final Logger _log = Logger();
+  late final PageController _pageController;
 
   Widget _fabIcon() {
     IconData icon = CupertinoIcons.add;
-    if (widget.media.userMediaStatus != null) {
+    if (_media.userMediaStatus != null) {
       icon = Icons.edit_note_rounded;
     }
     return Icon(icon, color: Colors.white, size: 44,);
   }
 
-  void _decideFabColor(UserMediaStatus mediaStatus) {
-    switch(mediaStatus.status) {
-      case "watching":
-        setState(() {
-          _fabColor = const Color.fromARGB(255, 70, 180, 90);
-        });
-        break;
-      case "completed":
-        setState(() {
-          _fabColor = const Color.fromARGB(255, 46, 90, 136);
-        });
-        break;
-      case "on_hold":
-        setState(() {
-          _fabColor = const Color.fromARGB(255, 255, 191, 0);
-        });
-        break;
-      case "dropped":
-        setState(() {
-          _fabColor = const Color.fromARGB(255, 140, 0, 0);
-        });
-        break;
-      case "plan_to_watch":
-        setState(() {
-          _fabColor = Colors.grey.shade500;
-        });
-        break;
+  void _decideFabColor(UserMediaStatus? mediaStatus) {
+    if (mediaStatus != null) {
+      switch(mediaStatus.status) {
+        case "watching":
+          setState(() {
+            _fabColor = const Color.fromARGB(255, 70, 180, 90);
+          });
+          break;
+        case "completed":
+          setState(() {
+            _fabColor = const Color.fromARGB(255, 46, 90, 136);
+          });
+          break;
+        case "on_hold":
+          setState(() {
+            _fabColor = const Color.fromARGB(255, 255, 191, 0);
+          });
+          break;
+        case "dropped":
+          setState(() {
+            _fabColor = const Color.fromARGB(255, 140, 0, 0);
+          });
+          break;
+        case "plan_to_watch":
+          setState(() {
+            _fabColor = Colors.grey.shade500;
+          });
+          break;
+      }
+    } else {
+      setState(() {
+        _fabColor = Colors.black;
+      });
     }
   }
 
@@ -136,16 +148,38 @@ class _MediaDetailState extends State<MediaDetail> {
         : Theme.of(context).textTheme.bodyMedium!.copyWith(color: Colors.grey.shade800);
   }
 
+  void _onPopInvoked(bool b) {
+    _pageController.previousPage(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.linear
+    );
+  }
+
+  SnackBar _snackBar(String text) {
+    return SnackBar(
+      content: Text(
+        text,
+        style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+            color: Colors.white
+        ),
+      ),
+      backgroundColor: Theme.of(context).colorScheme.primary,
+    );
+  }
+
   @override
   void initState() {
     super.initState();
+    _log.i("media detail init");
+    _media = widget.media;
+    _pageController = PageController();
     _cutSynopsis();
     _pictures.add(widget.media.mediaPicture);
     if (widget.media.userMediaStatus != null) {
       _decideFabColor(widget.media.userMediaStatus!);
     }
     MalAPIHelper.fetchMediaById(
-      widget.media.id,
+      _media.id,
       widget.isAnime,
       (media) {
         setState(() {
@@ -159,180 +193,229 @@ class _MediaDetailState extends State<MediaDetail> {
             _pictures = List.of(_pictures)..addAll(media.pictures!);
           });
         }
-      }
+      },
+      fields: widget.isAnime ? GlobalConstant.mandatoryFields : GlobalConstant.mangaMandatoryFields
     );
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final bool isUpdated = Provider.of<UpdateMediaNotifier>(context).updated;
+    if (isUpdated) {
+      _log.i("media updated");
+      MalAPIHelper.fetchMediaById(
+        _media.id,
+        widget.isAnime,
+        (MediaNode node) {
+          _decideFabColor(node.userMediaStatus);
+          setState(() {
+            _media = node;
+          });
+          Provider.of<UpdateMediaNotifier>(context, listen: false).updated = false;
+          _onPopInvoked(false);
+          _log.i("media detail changing");
+        },
+        fields: widget.isAnime ? GlobalConstant.mandatoryFields : GlobalConstant.mangaMandatoryFields
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _pageController.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: LayoutBuilder(builder: (context, constraint) {
-        final size = constraint.maxHeight >= constraint.maxWidth ?
-        constraint.maxWidth / 2.2 : constraint.maxHeight / 2.2;
-        return CustomScrollView(
-          slivers: [
-            SliverAppBar(
-              stretchTriggerOffset: 10,
-              backgroundColor: Theme.of(context).colorScheme.surface,
-              pinned: true,
-              leading: IconButton(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.arrow_back_rounded),
-              ),
-              title: Padding(
-                padding: const EdgeInsets.only(top: 8, right: 48, bottom: 8),
-                child: Center(
-                  child: Image.asset("images/mal-logo-full.png", height: 120, width: 120,),
-                ),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(30),
-                      )
+    return PageView(
+      controller: _pageController,
+      physics: const NeverScrollableScrollPhysics(),
+      children: [
+        Scaffold(
+          body: LayoutBuilder(builder: (context, constraint) {
+            final size = constraint.maxHeight >= constraint.maxWidth ?
+            constraint.maxWidth / 2.2 : constraint.maxHeight / 2.2;
+            return CustomScrollView(
+              slivers: [
+                SliverAppBar(
+                  stretchTriggerOffset: 10,
+                  backgroundColor: Theme.of(context).colorScheme.surface,
+                  pinned: true,
+                  leading: IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.arrow_back_rounded),
+                  ),
+                  title: Padding(
+                    padding: const EdgeInsets.only(top: 8, right: 48, bottom: 8),
+                    child: Center(
+                      child: Image.asset("images/mal-logo-full.png", height: 120, width: 120,),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        // mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          SizedBox(
-                            height: size * 1.5,
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Column(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surface,
+                            borderRadius: const BorderRadius.only(
+                              bottomLeft: Radius.circular(30),
+                            )
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            // mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              SizedBox(
+                                height: size * 1.5,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.end,
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text("Score", style: Theme.of(context).textTheme.displaySmall,),
-                                      Row(
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.end,
                                         children: [
-                                          const Icon(
-                                            Icons.star_rounded,
-                                            size: 38,
-                                          ),
-                                          const SizedBox(width: 4,),
-                                          Text(
-                                            widget.media.mean != null ? widget.media.mean.toString() : "N/A",
-                                            style: Theme.of(context).textTheme.displayMedium!.copyWith(fontStyle: FontStyle.italic),
+                                          Text("Score", style: Theme.of(context).textTheme.displaySmall,),
+                                          Row(
+                                            children: [
+                                              const Icon(
+                                                Icons.star_rounded,
+                                                size: 38,
+                                              ),
+                                              const SizedBox(width: 4,),
+                                              Text(
+                                                _media.mean != null ? _media.mean.toString() : "N/A",
+                                                style: Theme.of(context).textTheme.displayMedium!.copyWith(fontStyle: FontStyle.italic),
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),
-                                    ],
-                                  ),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text("Members", style: TextStyle(color: Colors.grey.shade700),),
-                                      Text(
-                                        NumberFormat.decimalPattern().format(widget.media.numScoringUsers ??= 0),
-                                        style: Theme.of(context).textTheme.displaySmall!.copyWith(fontStyle: FontStyle.italic),
-                                      ),
-                                      const SizedBox(height: 2,),
-                                      Text("Rank", style: TextStyle(color: Colors.grey.shade700),),
-                                      Row(
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.end,
                                         children: [
-                                          Icon(Icons.numbers_rounded, size: 24, color: Colors.grey.shade700,),
+                                          Text("Members", style: TextStyle(color: Colors.grey.shade700),),
                                           Text(
-                                            NumberFormat.decimalPattern().format(widget.media.rank ??= 0),
+                                            NumberFormat.decimalPattern().format(_media.numScoringUsers ??= 0),
                                             style: Theme.of(context).textTheme.displaySmall!.copyWith(fontStyle: FontStyle.italic),
                                           ),
+                                          const SizedBox(height: 2,),
+                                          Text("Rank", style: TextStyle(color: Colors.grey.shade700),),
+                                          Row(
+                                            children: [
+                                              Icon(Icons.numbers_rounded, size: 24, color: Colors.grey.shade700,),
+                                              Text(
+                                                NumberFormat.decimalPattern().format(_media.rank ??= 0),
+                                                style: Theme.of(context).textTheme.displaySmall!.copyWith(fontStyle: FontStyle.italic),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 2,),
+                                          Text("Popularity", style: TextStyle(color: Colors.grey.shade700),),
+                                          Text(
+                                            NumberFormat.decimalPattern().format(_media.popularity ??= 0),
+                                            style: Theme.of(context).textTheme.displaySmall!.copyWith(fontStyle: FontStyle.italic),
+                                          ),
+                                          const SizedBox(height: 8,),
+                                          Row(children: InfoBar.bars(_media, context, showWarning: widget.isContentSensitive))
                                         ],
                                       ),
-                                      const SizedBox(height: 2,),
-                                      Text("Popularity", style: TextStyle(color: Colors.grey.shade700),),
-                                      Text(
-                                        NumberFormat.decimalPattern().format(widget.media.popularity ??= 0),
-                                        style: Theme.of(context).textTheme.displaySmall!.copyWith(fontStyle: FontStyle.italic),
-                                      ),
-                                      const SizedBox(height: 8,),
-                                      Row(children: InfoBar.bars(widget.media, context, showWarning: widget.isContentSensitive))
                                     ],
                                   ),
-                                ],
+                                ),
+                              ),
+                              Hero(
+                                tag: widget.heroTag,
+                                child: SwipeableImage(
+                                    width: size,
+                                    pictures: _pictures
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                            child: Text(
+                              _media.title,
+                              style: Theme.of(context).textTheme.displayMedium!.copyWith(fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 16, right: 16, top: 4),
+                        child: Column(
+                          children: [
+                            SizedBox(
+                              child: Text(
+                                _synopsis,
+                                style: Theme.of(context).textTheme.bodyLarge,
+                                textAlign: TextAlign.justify,
                               ),
                             ),
-                          ),
-                          Hero(
-                            tag: widget.heroTag,
-                            child: SwipeableImage(
-                                width: size,
-                                pictures: _pictures
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
-                        child: Text(
-                          widget.media.title,
-                          style: Theme.of(context).textTheme.displayMedium!.copyWith(fontWeight: FontWeight.bold),
-                          textAlign: TextAlign.center,
+                            _isAbleExpandSynopsis ? Center(
+                              child: _RotateableArrow(
+                                onTap: () {
+                                  _showHideSynopsis();
+                                },
+                              ),
+                            ) : const SizedBox(),
+                          ],
                         ),
                       ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16, right: 16, top: 4),
-                    child: Column(
-                      children: [
-                        SizedBox(
-                          child: Text(
-                            _synopsis,
-                            style: Theme.of(context).textTheme.bodyLarge,
-                            textAlign: TextAlign.justify,
-                          ),
+                      const SizedBox(height: 8,),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 16, right: 16, top: 4),
+                        child: _MediaDetails(
+                            media: _media,
+                            width: constraint.maxWidth,
+                            titleStyle: _detailsTitleStyle(context),
+                            contentStyle: _detailsStyle(context),
+                            isAnime: widget.isAnime
                         ),
-                        _isAbleExpandSynopsis ? Center(
-                          child: _RotateableArrow(
-                            onTap: () {
-                              _showHideSynopsis();
-                            },
-                          ),
-                        ) : const SizedBox(),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8,),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16, right: 16, top: 4),
-                    child: _MediaDetails(
-                      media: widget.media,
-                      width: constraint.maxWidth,
-                      titleStyle: _detailsTitleStyle(context),
-                      contentStyle: _detailsStyle(context),
-                      isAnime: widget.isAnime
-                    ),
-                  ),
-                ],
-              ),
-            )
-          ],
-        );
-      }),
-      floatingActionButton: FloatingActionButton.large(
-        backgroundColor: _fabColor,
-        heroTag: null,
-        shape: const CircleBorder(),
-        onPressed: () {
-        },
-        child: _fabIcon(),
-      ),
+                )
+              ],
+            );
+          }),
+          floatingActionButton: FloatingActionButton.large(
+            backgroundColor: _fabColor,
+            heroTag: null,
+            shape: const CircleBorder(),
+            onPressed: () => _pageController.nextPage(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.linear
+            ),
+            child: _fabIcon(),
+          ),
+        ),
+        EditMediaPage(
+          media: _media,
+          isAnime: widget.isAnime,
+          onPopInvoked: _onPopInvoked,
+          onEditUpdated: () {
+            ScaffoldMessenger.of(context).showSnackBar(_snackBar("List updated"));
+          },
+          onRemoved: (isUpdated) {
+            ScaffoldMessenger.of(context).showSnackBar(_snackBar(isUpdated ? "Removed" : "Fail to remove"));
+          },
+        ),
+      ],
     );
   }
 }
