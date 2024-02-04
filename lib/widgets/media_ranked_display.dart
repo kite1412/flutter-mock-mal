@@ -31,7 +31,7 @@ class _MediaRankedDisplayState extends State<MediaRankedDisplay> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final updatedMediaId = Provider.of<UpdateMediaNotifier>(context).updatedMediaId;
+    final updatedMediaId = Provider.of<GlobalNotifier>(context).updatedMediaId;
     if (updatedMediaId != -1 && widget.media.node.id == updatedMediaId) {
       MalAPIHelper.fetchMediaById(
         updatedMediaId,
@@ -41,7 +41,7 @@ class _MediaRankedDisplayState extends State<MediaRankedDisplay> {
             widget.media = MediaNodeRanked(updatedMedia, widget.media.ranking);
           });
           widget.onMediaUpdate(widget.media);
-          Provider.of<UpdateMediaNotifier>(context, listen: false).updatedMediaId = -1;
+          Provider.of<GlobalNotifier>(context, listen: false).updatedMediaId = -1;
         },
         fields: widget.isAnime ? GlobalConstant.mandatoryFields : GlobalConstant.mangaMandatoryFields
       );

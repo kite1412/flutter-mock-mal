@@ -30,7 +30,7 @@ class _MediaDisplayState extends State<MediaDisplay> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final updatedMediaId = Provider.of<UpdateMediaNotifier>(context).updatedMediaId;
+    final updatedMediaId = Provider.of<GlobalNotifier>(context).updatedMediaId;
     if (updatedMediaId != -1 && widget.media.id == updatedMediaId) {
       MalAPIHelper.fetchMediaById(
           updatedMediaId,
@@ -40,7 +40,7 @@ class _MediaDisplayState extends State<MediaDisplay> {
               widget.media = updatedMedia;
             });
             widget.onMediaUpdate(widget.media);
-            Provider.of<UpdateMediaNotifier>(context, listen: false).updatedMediaId = -1;
+            Provider.of<GlobalNotifier>(context, listen: false).updatedMediaId = -1;
           },
           fields: GlobalConstant.mandatoryFields
       );

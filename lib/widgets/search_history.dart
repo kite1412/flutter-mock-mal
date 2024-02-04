@@ -21,7 +21,10 @@ class SearchHistory extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: Theme.of(context).textTheme.bodyMedium!.color!)
+          bottom: BorderSide(
+            color: MediaQuery.platformBrightnessOf(context) == Brightness.light ?
+              Colors.grey : Colors.grey.shade700
+          )
         ),
       ),
       child: Row(
@@ -89,7 +92,11 @@ class _SearchHistoryBar extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Icon(Icons.youtube_searched_for_rounded),
+              Icon(
+                Icons.youtube_searched_for_rounded,
+                color: MediaQuery.platformBrightnessOf(context) == Brightness.light ?
+                  Colors.grey.shade600 : Colors.grey.shade700,
+              ),
               const SizedBox(width: 8,),
               Expanded(
                 child: Text(
@@ -98,7 +105,11 @@ class _SearchHistoryBar extends StatelessWidget {
               ),
               InkWell(
                 onTap: () => onDelete(value),
-                child: const Icon(CupertinoIcons.clear),
+                child: Icon(
+                  CupertinoIcons.clear,
+                  color: MediaQuery.platformBrightnessOf(context) == Brightness.light ?
+                    Colors.grey.shade600 : Colors.grey.shade700,
+                ),
               )
             ],
           )

@@ -112,7 +112,9 @@ class _MediaListColumnState extends State<MediaListColumn> {
   @override
   Widget build(BuildContext context) {
     List<MediaCard> nodes = _nodes.map((e) {
-      return MediaCard(media: e, isAnime: widget.isAnime, informOnUpdate: (newMedia) {},);
+      return MediaCard(media: e, isAnime: widget.isAnime, informOnUpdate: (newMedia, updateType) {
+
+      },);
     }).toList();
     return _loadingState ? SizedBox(
       height: MediaQuery.of(context).size.height - (kToolbarHeight + 46),

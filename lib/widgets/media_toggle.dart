@@ -1,5 +1,7 @@
+import 'package:anime_gallery/notifier/update_media_notifier.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class MediaToggle extends StatefulWidget {
   final void Function(int) onToggleChange;
@@ -42,12 +44,12 @@ class _MediaToggleState extends State<MediaToggle> {
                     topLeft: Radius.circular(100),
                     bottomLeft: Radius.circular(100)
                 ),
-                onTap: () {
+                onTap: Provider.of<GlobalNotifier>(context).enableMediaToggleChange ? () {
                   setState(() {
                     _selectedIndex = 0;
                   });
                   widget.onToggleChange(_selectedIndex);
-                },
+                } : null,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
                   decoration: BoxDecoration(
@@ -62,7 +64,9 @@ class _MediaToggleState extends State<MediaToggle> {
                   alignment: Alignment.center,
                   child: Text(
                     "Anime",
-                    style: Theme.of(context).textTheme.bodyLarge,
+                    style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                        color: Colors.white
+                    ),
                   ),
                 ),
               ),
@@ -80,12 +84,12 @@ class _MediaToggleState extends State<MediaToggle> {
                   bottomRight: Radius.circular(100),
                   topRight: Radius.circular(100),
                 ),
-                onTap: () {
+                onTap: Provider.of<GlobalNotifier>(context).enableMediaToggleChange ? () {
                   setState(() {
                     _selectedIndex = 1;
                   });
                   widget.onToggleChange(_selectedIndex);
-                },
+                } : null,
                 splashFactory: InkSplash.splashFactory,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
@@ -101,7 +105,9 @@ class _MediaToggleState extends State<MediaToggle> {
                   alignment: Alignment.center,
                   child: Text(
                     "Manga",
-                    style: Theme.of(context).textTheme.bodyLarge,
+                    style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                      color: Colors.white
+                    ),
                   ),
                 ),
               )

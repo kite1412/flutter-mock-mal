@@ -105,12 +105,20 @@ class _MainPageState extends State<MainPage> {
         body: [
           TabBarView(
             children: [
-              // TODO(change ot MMediaList and set the UpdateMediaNotifier.userListShowingAnime to true at init)
+              // TODO(change to MMediaList and set the UpdateMediaNotifier.userListShowingAnime to true at init)
               MediaList(isAnime: true, appBarListener: (controller) => _adjustAppBarSize(controller)),
               MediaList(isAnime: false, appBarListener: (controller) => _adjustAppBarSize(controller)),
             ],
           ),
-          UserList(userInfo: userInfo, onProfileTap: () => _showProfile(context)),
+          PopScope(
+            canPop: false,
+            onPopInvoked: (index) {
+              setState(() {
+                _selectedIndex = 0;
+              });
+            },
+            child: UserList(userInfo: userInfo, onProfileTap: () => _showProfile(context)),
+          )
         ][_selectedIndex],
         // appBar: AppBar(
         //   toolbarHeight: _appBarHeight,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 
-class UpdateMediaNotifier extends ChangeNotifier {
+class GlobalNotifier extends ChangeNotifier {
   final Logger _log = Logger();
   double _selectedIndex = 0.0;
   int _statusIndex = -1;
@@ -13,6 +13,11 @@ class UpdateMediaNotifier extends ChangeNotifier {
   bool _isSuggestionsDone = false;
   bool _isOnAiringDone = false;
   bool _userListShowingAnime = true;
+  bool _isDismissalDone = false;
+  bool _enableMediaToggleChange = true;
+  bool _changeMediaTypeReady = false;
+  String _statusNeedUpdate = "*";
+  String _statusBeforeUpdate = "*";
 
   double get selectedIndex => _selectedIndex;
   int get status => _statusIndex;
@@ -24,6 +29,11 @@ class UpdateMediaNotifier extends ChangeNotifier {
   bool get isSuggestionsDone => _isSuggestionsDone;
   bool get isOnAiringDone => _isOnAiringDone;
   bool get userListShowingAnime => _userListShowingAnime;
+  bool get isDismissalDone => _isDismissalDone;
+  bool get enableMediaToggleChange => _enableMediaToggleChange;
+  bool get changeMediaTypeReady => _changeMediaTypeReady;
+  String get statusNeedUpdate => _statusNeedUpdate;
+  String get statusBeforeUpdate => _statusBeforeUpdate;
 
   set selectedIndex(double newProgress) {
     _selectedIndex = newProgress;
@@ -72,6 +82,31 @@ class UpdateMediaNotifier extends ChangeNotifier {
 
   set userListShowingAnime(bool newValue) {
     _userListShowingAnime = newValue;
+    notifyListeners();
+  }
+
+  set isDismissalDone(bool newValue) {
+    _isDismissalDone = newValue;
+    notifyListeners();
+  }
+
+  set enableMediaToggleChange(bool newValue) {
+    _enableMediaToggleChange = newValue;
+    notifyListeners();
+  }
+
+  set changeMediaTypeReady(bool newValue) {
+    _changeMediaTypeReady = newValue;
+    notifyListeners();
+  }
+
+  set statusNeedUpdate(String newValue) {
+    _statusNeedUpdate = newValue;
+    notifyListeners();
+  }
+
+  set statusBeforeUpdate(String newValue) {
+    _statusBeforeUpdate = newValue;
     notifyListeners();
   }
 }

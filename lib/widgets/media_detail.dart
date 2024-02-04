@@ -40,6 +40,7 @@ class _MediaDetailState extends State<MediaDetail> {
   String _synopsis = "";
   bool _isAbleExpandSynopsis = false;
   bool _isShowingFullSynopsis = false;
+  bool _enableDismissal = false;
   final Logger _log = Logger();
   late final PageController _pageController;
 
@@ -167,6 +168,13 @@ class _MediaDetailState extends State<MediaDetail> {
     );
   }
 
+  void _checkDismissal() {
+    if (_enableDismissal) {
+      Provider.of<GlobalNotifier>(context, listen: false).updatedMediaId = _media.id;
+      Provider.of<GlobalNotifier>(context, listen: false).isDismissalDone = false;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -201,7 +209,7 @@ class _MediaDetailState extends State<MediaDetail> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final bool isUpdated = Provider.of<UpdateMediaNotifier>(context).updated;
+    final bool isUpdated = Provider.of<GlobalNotifier>(context).updated;
     if (isUpdated) {
       _log.i("media updated");
       MalAPIHelper.fetchMediaById(
@@ -209,10 +217,15 @@ class _MediaDetailState extends State<MediaDetail> {
         widget.isAnime,
         (MediaNode node) {
           _decideFabColor(node.userMediaStatus);
+          if (_media.userMediaStatus?.status != node.userMediaStatus?.status) {
+            setState(() {
+              _enableDismissal = true;
+            });
+          }
           setState(() {
             _media = node;
           });
-          Provider.of<UpdateMediaNotifier>(context, listen: false).updated = false;
+          Provider.of<GlobalNotifier>(context, listen: false).updated = false;
           _onPopInvoked(false);
           _log.i("media detail changing");
         },
@@ -233,175 +246,184 @@ class _MediaDetailState extends State<MediaDetail> {
       controller: _pageController,
       physics: const NeverScrollableScrollPhysics(),
       children: [
-        Scaffold(
-          body: LayoutBuilder(builder: (context, constraint) {
-            final size = constraint.maxHeight >= constraint.maxWidth ?
-            constraint.maxWidth / 2.2 : constraint.maxHeight / 2.2;
-            return CustomScrollView(
-              slivers: [
-                SliverAppBar(
-                  stretchTriggerOffset: 10,
-                  backgroundColor: Theme.of(context).colorScheme.surface,
-                  pinned: true,
-                  leading: IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.arrow_back_rounded),
-                  ),
-                  title: Padding(
-                    padding: const EdgeInsets.only(top: 8, right: 48, bottom: 8),
-                    child: Center(
-                      child: Image.asset("images/mal-logo-full.png", height: 120, width: 120,),
+        PopScope(
+          onPopInvoked: (didPop) {
+            _checkDismissal();
+            print("dismiss: $_enableDismissal");
+          },
+          child: Scaffold(
+            body: LayoutBuilder(builder: (context, constraint) {
+              final size = constraint.maxHeight >= constraint.maxWidth ?
+              constraint.maxWidth / 2.2 : constraint.maxHeight / 2.2;
+              return CustomScrollView(
+                slivers: [
+                  SliverAppBar(
+                    stretchTriggerOffset: 10,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                    pinned: true,
+                    leading: IconButton(
+                      onPressed: () {
+                        _checkDismissal();
+                        Navigator.of(context).pop();
+                      },
+                      icon: const Icon(Icons.arrow_back_rounded),
+                    ),
+                    title: Padding(
+                      padding: const EdgeInsets.only(top: 8, right: 48, bottom: 8),
+                      child: Center(
+                        child: Image.asset("images/mal-logo-full.png", height: 120, width: 120,),
+                      ),
                     ),
                   ),
-                ),
-                SliverToBoxAdapter(
-                  child: Column(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surface,
-                            borderRadius: const BorderRadius.only(
-                              bottomLeft: Radius.circular(30),
-                            )
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            // mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              SizedBox(
-                                height: size * 1.5,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
-                                        children: [
-                                          Text("Score", style: Theme.of(context).textTheme.displaySmall,),
-                                          Row(
-                                            children: [
-                                              const Icon(
-                                                Icons.star_rounded,
-                                                size: 38,
-                                              ),
-                                              const SizedBox(width: 4,),
-                                              Text(
-                                                _media.mean != null ? _media.mean.toString() : "N/A",
-                                                style: Theme.of(context).textTheme.displayMedium!.copyWith(fontStyle: FontStyle.italic),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
-                                        children: [
-                                          Text("Members", style: TextStyle(color: Colors.grey.shade700),),
-                                          Text(
-                                            NumberFormat.decimalPattern().format(_media.numScoringUsers ??= 0),
-                                            style: Theme.of(context).textTheme.displaySmall!.copyWith(fontStyle: FontStyle.italic),
-                                          ),
-                                          const SizedBox(height: 2,),
-                                          Text("Rank", style: TextStyle(color: Colors.grey.shade700),),
-                                          Row(
-                                            children: [
-                                              Icon(Icons.numbers_rounded, size: 24, color: Colors.grey.shade700,),
-                                              Text(
-                                                NumberFormat.decimalPattern().format(_media.rank ??= 0),
-                                                style: Theme.of(context).textTheme.displaySmall!.copyWith(fontStyle: FontStyle.italic),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 2,),
-                                          Text("Popularity", style: TextStyle(color: Colors.grey.shade700),),
-                                          Text(
-                                            NumberFormat.decimalPattern().format(_media.popularity ??= 0),
-                                            style: Theme.of(context).textTheme.displaySmall!.copyWith(fontStyle: FontStyle.italic),
-                                          ),
-                                          const SizedBox(height: 8,),
-                                          Row(children: InfoBar.bars(_media, context, showWarning: widget.isContentSensitive))
-                                        ],
-                                      ),
-                                    ],
+                  SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surface,
+                              borderRadius: const BorderRadius.only(
+                                bottomLeft: Radius.circular(30),
+                              )
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              // mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                SizedBox(
+                                  height: size * 1.5,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                          children: [
+                                            Text("Score", style: Theme.of(context).textTheme.displaySmall,),
+                                            Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.star_rounded,
+                                                  size: 38,
+                                                ),
+                                                const SizedBox(width: 4,),
+                                                Text(
+                                                  _media.mean != null ? _media.mean.toString() : "N/A",
+                                                  style: Theme.of(context).textTheme.displayMedium!.copyWith(fontStyle: FontStyle.italic),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                          children: [
+                                            Text("Members", style: TextStyle(color: Colors.grey.shade700),),
+                                            Text(
+                                              NumberFormat.decimalPattern().format(_media.numScoringUsers ??= 0),
+                                              style: Theme.of(context).textTheme.displaySmall!.copyWith(fontStyle: FontStyle.italic),
+                                            ),
+                                            const SizedBox(height: 2,),
+                                            Text("Rank", style: TextStyle(color: Colors.grey.shade700),),
+                                            Row(
+                                              children: [
+                                                Icon(Icons.numbers_rounded, size: 24, color: Colors.grey.shade700,),
+                                                Text(
+                                                  NumberFormat.decimalPattern().format(_media.rank ??= 0),
+                                                  style: Theme.of(context).textTheme.displaySmall!.copyWith(fontStyle: FontStyle.italic),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 2,),
+                                            Text("Popularity", style: TextStyle(color: Colors.grey.shade700),),
+                                            Text(
+                                              NumberFormat.decimalPattern().format(_media.popularity ??= 0),
+                                              style: Theme.of(context).textTheme.displaySmall!.copyWith(fontStyle: FontStyle.italic),
+                                            ),
+                                            const SizedBox(height: 8,),
+                                            Row(children: InfoBar.bars(_media, context, showWarning: widget.isContentSensitive))
+                                          ],
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
+                                Hero(
+                                  tag: widget.heroTag,
+                                  child: SwipeableImage(
+                                      width: size,
+                                      pictures: _pictures
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                              child: Text(
+                                _media.title,
+                                style: Theme.of(context).textTheme.displayMedium!.copyWith(fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
                               ),
-                              Hero(
-                                tag: widget.heroTag,
-                                child: SwipeableImage(
-                                    width: size,
-                                    pictures: _pictures
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 16, right: 16, top: 4),
+                          child: Column(
+                            children: [
+                              SizedBox(
+                                child: Text(
+                                  _synopsis,
+                                  style: Theme.of(context).textTheme.bodyLarge,
+                                  textAlign: TextAlign.justify,
                                 ),
                               ),
+                              _isAbleExpandSynopsis ? Center(
+                                child: _RotateableArrow(
+                                  onTap: () {
+                                    _showHideSynopsis();
+                                  },
+                                ),
+                              ) : const SizedBox(),
                             ],
                           ),
                         ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.only(top: 16),
-                        child: Center(
-                          child: Padding(
-                            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
-                            child: Text(
-                              _media.title,
-                              style: Theme.of(context).textTheme.displayMedium!.copyWith(fontWeight: FontWeight.bold),
-                              textAlign: TextAlign.center,
-                            ),
+                        const SizedBox(height: 8,),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 16, right: 16, top: 4),
+                          child: _MediaDetails(
+                              media: _media,
+                              width: constraint.maxWidth,
+                              titleStyle: _detailsTitleStyle(context),
+                              contentStyle: _detailsStyle(context),
+                              isAnime: widget.isAnime
                           ),
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 16, right: 16, top: 4),
-                        child: Column(
-                          children: [
-                            SizedBox(
-                              child: Text(
-                                _synopsis,
-                                style: Theme.of(context).textTheme.bodyLarge,
-                                textAlign: TextAlign.justify,
-                              ),
-                            ),
-                            _isAbleExpandSynopsis ? Center(
-                              child: _RotateableArrow(
-                                onTap: () {
-                                  _showHideSynopsis();
-                                },
-                              ),
-                            ) : const SizedBox(),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 8,),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 16, right: 16, top: 4),
-                        child: _MediaDetails(
-                            media: _media,
-                            width: constraint.maxWidth,
-                            titleStyle: _detailsTitleStyle(context),
-                            contentStyle: _detailsStyle(context),
-                            isAnime: widget.isAnime
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              ],
-            );
-          }),
-          floatingActionButton: FloatingActionButton.large(
-            backgroundColor: _fabColor,
-            heroTag: null,
-            shape: const CircleBorder(),
-            onPressed: () => _pageController.nextPage(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.linear
+                      ],
+                    ),
+                  )
+                ],
+              );
+            }),
+            floatingActionButton: FloatingActionButton.large(
+              backgroundColor: _fabColor,
+              heroTag: null,
+              shape: const CircleBorder(),
+              onPressed: () => _pageController.nextPage(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.linear
+              ),
+              child: _fabIcon(),
             ),
-            child: _fabIcon(),
           ),
         ),
         EditMediaPage(
@@ -410,9 +432,11 @@ class _MediaDetailState extends State<MediaDetail> {
           onPopInvoked: _onPopInvoked,
           onEditUpdated: () {
             ScaffoldMessenger.of(context).showSnackBar(_snackBar("List updated"));
+
           },
           onRemoved: (isUpdated) {
             ScaffoldMessenger.of(context).showSnackBar(_snackBar(isUpdated ? "Removed" : "Fail to remove"));
+
           },
         ),
       ],

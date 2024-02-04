@@ -14,6 +14,7 @@ import 'package:anime_gallery/util/global_constant.dart';
 import 'package:anime_gallery/widgets/search_history.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -292,7 +293,11 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
                 title: Padding(
                   padding: const EdgeInsets.only(top: 8, bottom: 8, right: 48),
                   child: Center(
-                    child: Image.asset("images/mal-logo-full.png", height: 120, width: 120,),
+                    child: SvgPicture.asset(
+                      "images/mock-mal-logo.svg",
+                      height: 120,
+                      width: 120,
+                    ),
                   ),
                 ),
                 bottom: my.SearchBar(

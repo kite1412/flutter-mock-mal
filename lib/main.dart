@@ -10,7 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   runApp(
     ChangeNotifierProvider(
-      create: (context) => UpdateMediaNotifier(),
+      create: (context) => GlobalNotifier(),
       child: const _App(),
     )
   );

@@ -8,6 +8,7 @@ import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../model/media_node.dart';
+import '../other/update_type.dart';
 import '../util/info_bar.dart';
 
 typedef AppBarListener = void Function(ScrollController);
@@ -121,8 +122,9 @@ class _MediaListState extends State<MediaList> {
       widget.appBarListener(scrollController);
     });
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      Provider.of<UpdateMediaNotifier>(context ,listen: false).userListShowingAnime = true;
-      _log.i("userList, isAnime: ${Provider.of<UpdateMediaNotifier>(context, listen: false).userListShowingAnime}");
+      Provider.of<GlobalNotifier>(context, listen: false).enableMediaToggleChange = true;
+      Provider.of<GlobalNotifier>(context ,listen: false).userListShowingAnime = true;
+      _log.i("userList, isAnime: ${Provider.of<GlobalNotifier>(context, listen: false).userListShowingAnime}");
     });
   }
 
@@ -138,7 +140,7 @@ class _MediaListState extends State<MediaList> {
       return MediaCard(
         media: e,
         isAnime: widget.isAnime,
-        informOnUpdate: (newMedia) {
+        informOnUpdate: (newMedia, updateType) {
           List<MediaNode> mapped = _nodes.map((e){
             if (e.id == newMedia.id) {
               return newMedia;
@@ -188,24 +190,29 @@ class _MediaListState extends State<MediaList> {
 class MediaCard extends StatefulWidget {
   final MediaNode media;
   final bool isAnime;
-  final void Function(MediaNode) informOnUpdate;
+  final void Function(MediaNode, UpdateType) informOnUpdate;
+  bool isDismissible;
 
-  const MediaCard({
+  MediaCard({
     super.key,
     required this.media,
     required this.isAnime,
-    required this.informOnUpdate
+    required this.informOnUpdate,
+    this.isDismissible = false
   });
 
   @override
   State<MediaCard> createState() => _MediaCardState();
 }
 
-class _MediaCardState extends State<MediaCard> {
+class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMixin {
   MediaNode _media = MediaNode.empty();
+  bool _dismiss = false;
   final _heroTag = const Uuid().v4();
   var _isContentSensitive = false;
   final Logger _log = Logger();
+  late final AnimationController _animationController;
+  late final Animation<double> _heightAnimation;
 
   Widget _showWarning(BuildContext context) {
     if (_media.genres != null) {
@@ -279,25 +286,56 @@ class _MediaCardState extends State<MediaCard> {
   void initState() {
     super.initState();
     _media = widget.media;
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 750)
+    );
+    _heightAnimation = Tween<double>(begin: 145, end: 0).animate(_animationController);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _animationController.dispose();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final updatedMediaId = Provider.of<UpdateMediaNotifier>(context).updatedMediaId;
-    if (updatedMediaId != -1 && updatedMediaId == _media.id) {
-      MalAPIHelper.fetchMediaById(
-        _media.id,
-        widget.isAnime,
-        (updatedNode) {
-          setState(() {
-            _media = updatedNode;
-          });
-          Provider.of<UpdateMediaNotifier>(context, listen: false).updatedMediaId = -1;
-          widget.informOnUpdate(updatedNode);
-        },
-        fields: widget.isAnime ? GlobalConstant.mandatoryFields : GlobalConstant.mangaMandatoryFields      );
-      _log.i("from media card");
+    final updatedMediaId = Provider.of<GlobalNotifier>(context).updatedMediaId;
+    final alreadyDismissed = Provider.of<GlobalNotifier>(context).isDismissalDone;
+    // status in user's media list change, remove the item visually,
+    // deleting the changed-status item done in the calling place of this MediaCard
+    // by using MediaCard.informOnUpdate(MediaNode, UpdateType) callback.
+    // used in every page in user list except 'all' page.
+    if (updatedMediaId != -1 && _media.id == updatedMediaId && widget.isDismissible && !alreadyDismissed) {
+      _log.i("dismissed: $updatedMediaId");
+      setState(() {
+        _dismiss = true;
+      });
+      Future.delayed(const Duration(milliseconds: 300)).whenComplete(() {
+        _animationController.forward();
+        Provider.of<GlobalNotifier>(context, listen: false).updatedMediaId = -1;
+        Provider.of<GlobalNotifier>(context, listen: false).isDismissalDone = true;
+        widget.informOnUpdate(_media, UpdateType.delete);
+      });
+    } else {
+      if (updatedMediaId != -1 && updatedMediaId == _media.id) {
+        MalAPIHelper.fetchMediaById(
+            _media.id,
+            widget.isAnime,
+            (updatedNode) {
+              Provider.of<GlobalNotifier>(context, listen: false).statusBeforeUpdate = _media.userMediaStatus?.status ?? "*";
+              setState(() {
+                _media = updatedNode;
+              });
+              Provider.of<GlobalNotifier>(context, listen: false).updatedMediaId = -1;
+              widget.informOnUpdate(updatedNode, UpdateType.edit);
+            },
+            fields: widget.isAnime ? GlobalConstant.mandatoryFields : GlobalConstant.mangaMandatoryFields
+        );
+        _log.i("from media card");
+      }
     }
   }
 
@@ -305,113 +343,126 @@ class _MediaCardState extends State<MediaCard> {
   Widget build(BuildContext context) {
     TextStyle? tStyle = Theme.of(context).textTheme.displaySmall?.copyWith(fontWeight: FontWeight.bold);
     TextStyle? cStyle = Theme.of(context).textTheme.bodySmall;
-    return Padding(
-      padding: const EdgeInsets.only(left: 8, right: 8),
-      child: Card(
-        color: Theme.of(context).colorScheme.background,
-        elevation: 0,
-        child: InkResponse(
-          splashColor: Colors.grey.shade800,
-          highlightShape: BoxShape.rectangle,
-          splashFactory: InkSplash.splashFactory,
-          containedInkWell: true,
-          borderRadius: const BorderRadius.only(
-            topRight: Radius.circular(10),
-            bottomRight: Radius.circular(10)
-          ),
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-               builder: (context) {
-                 return MediaDetail(
-                   media: _media,
-                   isAnime: widget.isAnime,
-                   heroTag: _heroTag,
-                   isContentSensitive: _isContentSensitive,
-                );
-              }
-            )
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              Stack(
+    return AnimatedBuilder(
+      animation: _heightAnimation,
+      builder: (context, child) {
+        return SizedBox(
+          height: _heightAnimation.value,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 8, right: 8),
+            child: InkResponse(
+              splashColor: Colors.grey.shade800,
+              highlightShape: BoxShape.rectangle,
+              splashFactory: InkSplash.splashFactory,
+              containedInkWell: true,
+              borderRadius: const BorderRadius.only(
+                  topRight: Radius.circular(10),
+                  bottomRight: Radius.circular(10)
+              ),
+              onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (context) {
+                        return MediaDetail(
+                          media: _media,
+                          isAnime: widget.isAnime,
+                          heroTag: _heroTag,
+                          isContentSensitive: _isContentSensitive,
+                        );
+                      }
+                  )
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.max,
                 children: [
-                  Hero(
-                    tag: _heroTag,
-                    child: Image(
-                      image: Image.network(_media.mediaPicture.medium).image,
-                      height: 140,
-                      width: 110,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                Positioned(
-                    right: 0,
-                    child: Container(
-                      color: Colors.black54,
-                      padding: const EdgeInsets.only(right: 2),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.star_rounded, size: 12, color: Colors.white,),
-                          Text(
-                            InfoBar.assertNullNumField(_media.mean).toString(),
-                            style: Theme.of(context).textTheme.bodySmall!.copyWith(color: Colors.white),),
-                        ],
+                  Stack(
+                    children: [
+                      Hero(
+                        tag: _heroTag,
+                        child: Image(
+                          image: Image.network(_media.mediaPicture.medium).image,
+                          height: 140,
+                          width: 110,
+                          fit: BoxFit.cover,
+                        ),
                       ),
-                    )
+                      Positioned(
+                          right: 0,
+                          child: Container(
+                            color: Colors.black54,
+                            padding: const EdgeInsets.only(right: 2),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.star_rounded, size: 12, color: Colors.white,),
+                                Text(
+                                  InfoBar.assertNullNumField(_media.mean).toString(),
+                                  style: Theme.of(context).textTheme.bodySmall!.copyWith(color: Colors.white),),
+                              ],
+                            ),
+                          )
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        child: _showWarning(context),
+                      ),
+                    ],
                   ),
-                  Positioned(
-                    bottom: 0,
-                    child: _showWarning(context),
-                  ),
+                  Expanded(
+                    child: _cardInfo(context, tStyle, cStyle),
+                  )
                 ],
               ),
-              _cardInfo(context, tStyle, cStyle),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      }
     );
   }
 
   Widget _cardInfo(BuildContext context, TextStyle? tStyle, TextStyle? cStyle) {
-    return Expanded(
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
       child: SizedBox(
         height: 140,
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Flexible(
+              flex: _dismiss ? 1 : 0,
+              child: Text(
                 _media.title,
                 style: tStyle,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 4,),
-              Text(
+            ),
+            Flexible(
+              flex: _dismiss ? 1 : 0,
+              child: const SizedBox(height: 4,)
+            ),
+            Flexible(
+              flex: _dismiss ? 1 : 0,
+              child: Text(
                 InfoBar.assertNullStringField(_media.synopsis),
                 style: cStyle,
                 overflow: TextOverflow.ellipsis,
                 maxLines: 4,
               ),
-              Expanded(
-                child: Row(
+            ),
+            Expanded(
+              child: Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: InfoBar.bars(_media, context)..add(
-                    _media.userMediaStatus != null ?
+                      _media.userMediaStatus != null ?
                       Expanded(
-                        child: Wrap(
-                          alignment: WrapAlignment.end,
-                          children: [_mediaStatusBar(context)],
-                        )
+                          child: Align(
+                            alignment: AlignmentDirectional.bottomEnd,
+                            child: _mediaStatusBar(context),
+                          )
                       ) : const SizedBox()
                   )
-                ),
               ),
-            ],
-          ),
+            )
+          ],
         ),
       )
     );

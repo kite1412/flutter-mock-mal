@@ -102,16 +102,16 @@ class _EditMediaPageState extends State<EditMediaPage> {
   void _changeProgressOnCompleted(BuildContext context) {
     if (_updatedStatus == "completed") {
       if (widget.isAnime) {
-        Provider.of<UpdateMediaNotifier>(context, listen: false).selectedIndex = widget.media.numEpisodes!.toDouble();
-        Provider.of<UpdateMediaNotifier>(context, listen: false).status = 1;
+        Provider.of<GlobalNotifier>(context, listen: false).selectedIndex = widget.media.numEpisodes!.toDouble();
+        Provider.of<GlobalNotifier>(context, listen: false).status = 1;
         setState(() {
-          _updatedProgress = Provider.of<UpdateMediaNotifier>(context, listen: false).selectedIndex.toInt();
+          _updatedProgress = Provider.of<GlobalNotifier>(context, listen: false).selectedIndex.toInt();
         });
       } else {
-        Provider.of<UpdateMediaNotifier>(context, listen: false).selectedIndex = widget.media.numChapters!.toDouble();
-        Provider.of<UpdateMediaNotifier>(context, listen: false).status = 1;
+        Provider.of<GlobalNotifier>(context, listen: false).selectedIndex = widget.media.numChapters!.toDouble();
+        Provider.of<GlobalNotifier>(context, listen: false).status = 1;
         setState(() {
-          _updatedProgress = Provider.of<UpdateMediaNotifier>(context, listen: false).selectedIndex.toInt();
+          _updatedProgress = Provider.of<GlobalNotifier>(context, listen: false).selectedIndex.toInt();
         });
       }
     }
@@ -121,8 +121,8 @@ class _EditMediaPageState extends State<EditMediaPage> {
 
   void _showAlertDialog(BuildContext context) {
     mShowDialog(context, "Discard all changes?", () {
-      Provider.of<UpdateMediaNotifier>(context, listen: false).selectedIndex = 0;
-      Provider.of<UpdateMediaNotifier>(context, listen: false).status = -1;
+      Provider.of<GlobalNotifier>(context, listen: false).selectedIndex = 0;
+      Provider.of<GlobalNotifier>(context, listen: false).status = -1;
       widget.onPopInvoked(false);
     });
   }
@@ -190,13 +190,13 @@ class _EditMediaPageState extends State<EditMediaPage> {
     if (widget.isAnime) {
       if (_updatedProgress != widget.media.numEpisodes) {
         if (_updatedStatus.isEmpty || _updatedStatus == "completed") {
-          Provider.of<UpdateMediaNotifier>(context, listen: false).status = 0;
+          Provider.of<GlobalNotifier>(context, listen: false).status = 0;
           setState(() {
             _updatedStatus = "watching";
           });
         }
       } else {
-        Provider.of<UpdateMediaNotifier>(context, listen: false).status = 1;
+        Provider.of<GlobalNotifier>(context, listen: false).status = 1;
         setState(() {
           _updatedStatus = "completed";
         });
@@ -204,13 +204,13 @@ class _EditMediaPageState extends State<EditMediaPage> {
     } else {
       if (_updatedProgress != widget.media.numChapters) {
         if (_updatedStatus.isEmpty || _updatedStatus == "completed") {
-          Provider.of<UpdateMediaNotifier>(context, listen: false).status = 0;
+          Provider.of<GlobalNotifier>(context, listen: false).status = 0;
           setState(() {
             _updatedStatus = "reading";
           });
         }
       } else {
-        Provider.of<UpdateMediaNotifier>(context, listen: false).status = 1;
+        Provider.of<GlobalNotifier>(context, listen: false).status = 1;
         setState(() {
           _updatedStatus = "completed";
         });
@@ -248,10 +248,10 @@ class _EditMediaPageState extends State<EditMediaPage> {
         // for the result's callback, prevent multiple request to update the dependent's state
         // and for more better user experience and consistency.
         // **using this notifier way as it already implemented
-        Provider.of<UpdateMediaNotifier>(context, listen: false).updated = true;
-        Provider.of<UpdateMediaNotifier>(context, listen: false).status = -1;
-        Provider.of<UpdateMediaNotifier>(context, listen: false).selectedIndex = 0;
-        Provider.of<UpdateMediaNotifier>(context, listen: false).updatedMediaId = widget.media.id;
+        Provider.of<GlobalNotifier>(context, listen: false).updated = true;
+        Provider.of<GlobalNotifier>(context, listen: false).status = -1;
+        Provider.of<GlobalNotifier>(context, listen: false).selectedIndex = 0;
+        Provider.of<GlobalNotifier>(context, listen: false).updatedMediaId = widget.media.id;
 
         widget.onEditUpdated();
       },
@@ -262,8 +262,8 @@ class _EditMediaPageState extends State<EditMediaPage> {
   }
 
   void _updateAfterPop() {
-    Provider.of<UpdateMediaNotifier>(context, listen: false).selectedIndex = 0;
-    Provider.of<UpdateMediaNotifier>(context, listen: false).status = -1;
+    Provider.of<GlobalNotifier>(context, listen: false).selectedIndex = 0;
+    Provider.of<GlobalNotifier>(context, listen: false).status = -1;
     widget.onPopInvoked(false);
   }
 
@@ -279,10 +279,10 @@ class _EditMediaPageState extends State<EditMediaPage> {
             widget.media.id,
             widget.isAnime,
             (isUpdated) {
-              Provider.of<UpdateMediaNotifier>(context, listen: false).updated = true;
-              Provider.of<UpdateMediaNotifier>(context, listen: false).status = -1;
-              Provider.of<UpdateMediaNotifier>(context, listen: false).selectedIndex = 0;
-              Provider.of<UpdateMediaNotifier>(context, listen: false).updatedMediaId = widget.media.id;
+              Provider.of<GlobalNotifier>(context, listen: false).updated = true;
+              Provider.of<GlobalNotifier>(context, listen: false).status = -1;
+              Provider.of<GlobalNotifier>(context, listen: false).selectedIndex = 0;
+              Provider.of<GlobalNotifier>(context, listen: false).updatedMediaId = widget.media.id;
               widget.onRemoved(isUpdated);
             }
         );
@@ -509,7 +509,7 @@ class _StatusSelectionState extends State<_StatusSelection> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final status = Provider.of<UpdateMediaNotifier>(context).status;
+    final status = Provider.of<GlobalNotifier>(context).status;
     if (status != -1) {
       setState(() {
         _selectedIndex = status;
@@ -633,7 +633,7 @@ class _NumberSelectionState extends State<_NumberSelection> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    double selectedIndexFromNotifier = Provider.of<UpdateMediaNotifier>(context).selectedIndex;
+    double selectedIndexFromNotifier = Provider.of<GlobalNotifier>(context).selectedIndex;
     if (!widget.isScore) {
       if (selectedIndexFromNotifier != 0) {
         setState(() {
@@ -641,7 +641,7 @@ class _NumberSelectionState extends State<_NumberSelection> {
         });
         Future.delayed(const Duration(milliseconds: 100)).whenComplete(() {
           _sslKey.currentState?.focusToItem(selectedIndexFromNotifier.toInt());
-          Provider.of<UpdateMediaNotifier>(context, listen: false).selectedIndex = 0;
+          Provider.of<GlobalNotifier>(context, listen: false).selectedIndex = 0;
         });
       }
     }
@@ -697,7 +697,7 @@ class _NumberSelectionState extends State<_NumberSelection> {
                 )
               );
             },
-            itemCount: widget.isScore ? 11 : widget.length + 1,
+            itemCount: widget.isScore ? 11 : widget.length == 0 ? 10000 : widget.length + 1,
             itemSize: 100,
             onItemFocus: (currentIndex) {
               setState(() {
