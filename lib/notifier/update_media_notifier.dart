@@ -16,6 +16,7 @@ class GlobalNotifier extends ChangeNotifier {
   bool _isDismissalDone = false;
   bool _enableMediaToggleChange = true;
   bool _changeMediaTypeReady = false;
+  bool _currentSessionAlreadyUpdated = true;
   String _statusNeedUpdate = "*";
   String _statusBeforeUpdate = "*";
 
@@ -32,6 +33,7 @@ class GlobalNotifier extends ChangeNotifier {
   bool get isDismissalDone => _isDismissalDone;
   bool get enableMediaToggleChange => _enableMediaToggleChange;
   bool get changeMediaTypeReady => _changeMediaTypeReady;
+  bool get currentSessionAlreadyUpdated => _currentSessionAlreadyUpdated;
   String get statusNeedUpdate => _statusNeedUpdate;
   String get statusBeforeUpdate => _statusBeforeUpdate;
 
@@ -97,6 +99,11 @@ class GlobalNotifier extends ChangeNotifier {
 
   set changeMediaTypeReady(bool newValue) {
     _changeMediaTypeReady = newValue;
+    notifyListeners();
+  }
+
+  set currentSessionAlreadyUpdated(bool newValue) {
+    _currentSessionAlreadyUpdated = newValue;
     notifyListeners();
   }
 

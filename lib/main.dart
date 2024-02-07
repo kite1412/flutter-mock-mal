@@ -1,4 +1,5 @@
 import 'package:anime_gallery/api/api_helper.dart';
+import 'package:anime_gallery/notifier/removable_list_notifier.dart';
 import 'package:anime_gallery/notifier/update_media_notifier.dart';
 import 'package:anime_gallery/util/global_constant.dart';
 import 'package:anime_gallery/widgets/app_main_page.dart';
@@ -9,8 +10,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => GlobalNotifier(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => GlobalNotifier(),),
+        ChangeNotifierProvider(create: (context) => RemovableListNotifier(),)
+      ],
       child: const _App(),
     )
   );

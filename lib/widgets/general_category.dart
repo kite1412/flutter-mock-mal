@@ -2,12 +2,15 @@
 import 'dart:ui';
 
 import 'package:anime_gallery/other/media_category.dart';
+import 'package:anime_gallery/util/refresh_content_util.dart';
+import 'package:anime_gallery/widgets/category_page.dart';
 import 'package:anime_gallery/widgets/media_display.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:uuid/uuid.dart';
 
+import '../model/data.dart';
 import '../model/media_node.dart';
 import 'media_detail.dart';
 
@@ -18,12 +21,14 @@ class GeneralCategory extends StatefulWidget {
   List<MediaNode> nodes;
   final MediaCategory mediaCategory;
   final List<Color> gradientColors;
+  final Data data;
 
   GeneralCategory({
     super.key,
     required this.nodes,
     required this.mediaCategory,
     required this.gradientColors,
+    required this.data,
   });
 
   @override
@@ -31,6 +36,7 @@ class GeneralCategory extends StatefulWidget {
 }
 
 class _GeneralCategoryState extends State<GeneralCategory> {
+  final String _heroTag = const Uuid().v4();
 
   @override
   Widget build(BuildContext context) {
@@ -51,25 +57,44 @@ class _GeneralCategoryState extends State<GeneralCategory> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        widget.mediaCategory.category,
-                        style: Theme.of(context).textTheme.displayMedium!
-                            .copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontStyle: FontStyle.italic,
-                            color: Colors.white
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) {
+                          return CategoryPage(
+                            category: widget.mediaCategory.category,
+                            nodes: widget.nodes,
+                            heroTag: _heroTag,
+                            gradientColors: widget.gradientColors,
+                            referenceData: widget.data,
+                          );
+                        })
+                      );
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Hero(
+                          tag: _heroTag,
+                          child: Text(
+                            widget.mediaCategory.category,
+                            style: Theme.of(context).textTheme.displayMedium!
+                                .copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontStyle: FontStyle.italic,
+                                color: Colors.white
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 4,),
-                      const Padding(
-                        padding: EdgeInsets.only(top: 4),
-                        child: Icon(Icons.arrow_forward_rounded, color: Colors.white,),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: 4,),
+                        const Padding(
+                          padding: EdgeInsets.only(top: 4),
+                          child: Icon(Icons.arrow_forward_rounded, color: Colors.white,),
+                        ),
+                      ],
+                    ),
+                  )
                 ),
               ],
             ),

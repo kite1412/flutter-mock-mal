@@ -5,6 +5,7 @@ import 'package:anime_gallery/other/media_status.dart';
 import 'package:anime_gallery/util/global_constant.dart';
 import 'package:anime_gallery/widgets/media_list.dart';
 import 'package:anime_gallery/widgets/media_toggle.dart';
+import 'package:anime_gallery/widgets/removable_media_list.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -13,7 +14,9 @@ import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
+import '../model/data.dart';
 import '../model/media_node.dart';
+import '../model/paging.dart';
 
 final Logger _log = Logger();
 
@@ -39,14 +42,15 @@ class _UserListState extends State<UserList>
   bool _isBarAutoJumpEnable = true;
   bool _isAppBarOnHide = false;
   bool _isAnime = true;
+  bool _ensureOneUpdate = true;
   List<MediaStatus> _mediaStatuses = MediaStatus.status(true, includeAll: true);
-  late ScrollController _scrollController;
   List<MediaNode>? _allNodes;
   List<MediaNode>? _onGoingNodes;
   List<MediaNode>? _completedNodes;
   List<MediaNode>? _onHoldNodes;
   List<MediaNode>? _droppedNodes;
   List<MediaNode>? _onPlanNodes;
+  late ScrollController _scrollController;
   late final TabController _tabController;
   late final PageController _pageController;
 
@@ -59,7 +63,7 @@ class _UserListState extends State<UserList>
   }
 
   void _scrollListener() {
-    _log.i(_scrollController.offset);
+    _log.i("all: ${_allNodes?.length}\n on going: ${_onGoingNodes?.length}\n completed: ${_completedNodes?.length}");
     if (_scrollController.offset >= kToolbarHeight) {
       if (!_isAppBarOnHide) {
         setState(() {
@@ -144,45 +148,89 @@ class _UserListState extends State<UserList>
     }
   }
 
-  void _fetchMedia(String? status) {
+  void _decideNodesLoad(List<MediaNode> newLoadedNodes, String? status) {
+    if (status == "watching" || status == "reading") {
+      setState(() {
+        _onGoingNodes?.addAll(newLoadedNodes);
+      });
+    } else if (status == "completed") {
+      setState(() {
+        _completedNodes?.addAll(newLoadedNodes);
+      });
+    } else if (status == "on_hold") {
+      setState(() {
+        _onHoldNodes?.addAll(newLoadedNodes);
+      });
+    } else if (status == "dropped") {
+      setState(() {
+        _droppedNodes?.addAll(newLoadedNodes);
+      });
+    } else if (status == "plan_to_watch" || status == "plan_to_read") {
+      setState(() {
+        _onPlanNodes?.addAll(newLoadedNodes);
+      });
+    } else {
+      setState(() {
+        _allNodes?.addAll(newLoadedNodes);
+      });
+    }
+  }
+
+  void _fetchMedia(String? status ,{bool isUpdatingPriorStatus = false}) {
     if (status != "*") {
-      MalAPIHelper.userMedia(
-          _isAnime,
-          {
-            "limit" : 100,
-            "fields" : _isAnime  ?
-            GlobalConstant.mandatoryFields : GlobalConstant.mangaMandatoryFields
+      _LoadData.fetchMedia(
+          status: status ?? "",
+          isAnime: _isAnime,
+          limit: 100,
+          onNewNodes: (newNodes) {
+            _decideNodes(newNodes, status);
           },
-          (nodes) {
-            _decideNodes(nodes, status);
-            Provider.of<GlobalNotifier>(context, listen: false).statusNeedUpdate = "*";
+          onNewLoaded: (onNewLoaded) {
+            _decideNodesLoad(onNewLoaded, status);
           },
-          status: status
+          onComplete: () {
+            if (!isUpdatingPriorStatus) {
+              Provider.of<GlobalNotifier>(context, listen: false).statusNeedUpdate = "*";
+            } else {
+              Provider.of<GlobalNotifier>(context, listen: false).statusBeforeUpdate = "*";
+            }
+          }
       );
     }
   }
 
-  void _updatePreviousStatus(String previousStatus) {
-    if (previousStatus != "*") {
-      MalAPIHelper.userMedia(
-          _isAnime,
-          {
-            "limit" : 100,
-            "fields" : _isAnime  ?
-            GlobalConstant.mandatoryFields : GlobalConstant.mangaMandatoryFields
-          },
-              (nodes) {
-            _decideNodes(nodes, previousStatus);
-            Provider.of<GlobalNotifier>(context, listen: false).statusBeforeUpdate = "*";
-          },
-          status: previousStatus
-      );
+  int _showTotalEntries() {
+    int totalEntries = 0;
+    switch(_selectedStatusIndex) {
+      case 0:
+        totalEntries = _allNodes?.length ?? 0;
+        break;
+      case 1:
+        totalEntries = _onGoingNodes?.length ?? 0;
+        break;
+      case 2:
+        totalEntries = _completedNodes?.length ?? 0;
+        break;
+      case 3:
+        totalEntries = _onHoldNodes?.length ?? 0;
+        break;
+      case 4:
+        totalEntries = _droppedNodes?.length ?? 0;
+        break;
+      case 5:
+        totalEntries = _onPlanNodes?.length ?? 0;
+        break;
     }
+    return totalEntries;
   }
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      Provider.of<GlobalNotifier>(context, listen: false).statusNeedUpdate = "*";
+      Provider.of<GlobalNotifier>(context, listen: false).statusBeforeUpdate = "*";
+    });
     _tabController = TabController(length: 2, vsync: this)
       ..addListener(_tabControllerListener);
     _scrollController = ScrollController()
@@ -196,10 +244,14 @@ class _UserListState extends State<UserList>
     super.didChangeDependencies();
     final isAnime = Provider.of<GlobalNotifier>(context).userListShowingAnime;
     final statusNeedUpdate = Provider.of<GlobalNotifier>(context).statusNeedUpdate;
-    final statusBeforeUpdate = Provider.of<GlobalNotifier>(context).statusBeforeUpdate;
-    if (statusNeedUpdate != "*") {
+    final statusBeforeUpdate = Provider.of<GlobalNotifier>(context, listen: false).statusBeforeUpdate;
+    final alreadyUpdated = Provider.of<GlobalNotifier>(context).currentSessionAlreadyUpdated;
+    if (statusNeedUpdate != "*" && !alreadyUpdated) {
+      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+        Provider.of<GlobalNotifier>(context, listen: false).currentSessionAlreadyUpdated = true;
+      });
       _fetchMedia(statusNeedUpdate);
-      _updatePreviousStatus(statusBeforeUpdate);
+      _fetchMedia(statusBeforeUpdate, isUpdatingPriorStatus: true);
       _fetchMedia(null);
     }
     if (_isAnime != isAnime) {
@@ -287,7 +339,7 @@ class _UserListState extends State<UserList>
                     _isAppBarOnHide && _hideMediaToggle ? _scrollController.jumpTo(kToolbarHeight) : _scrollController.jumpTo(0);
                     // prevent deleting upon status change in 'all' page
                     // on the next selected page.
-                    Provider.of<GlobalNotifier>(context, listen: false).isDismissalDone = true;
+                    // Provider.of<GlobalNotifier>(context, listen: false).isDismissalDone = true;
                     setState(() {
                       _selectedStatusIndex = status.index;
                     });
@@ -308,7 +360,7 @@ class _UserListState extends State<UserList>
                   });
                   // prevent deleting upon status change in 'all' page
                   // on the next selected page.
-                  Provider.of<GlobalNotifier>(context, listen: false).isDismissalDone = true;
+                  // Provider.of<GlobalNotifier>(context, listen: false).isDismissalDone = true;
                   Future.delayed(const Duration(milliseconds: 550)).whenComplete(() {
                     setState(() {
                       _allowScrollPage = true;
@@ -543,9 +595,9 @@ class _TabBarState extends State<_TabBar> {
       final offset = (_barsWidth[currentIndex] / _scrollController.position.extentTotal) * _scrollController.position.maxScrollExtent;
       _scrollController.animateTo(
           currentIndex == 0 ? 0 :
-          currentIndex == _barsWidth.length - 1 ? _scrollController.position.maxScrollExtent :
-          currentIndex == 1 ? _barsWidth[0]:
-          offset,
+            currentIndex == _barsWidth.length - 1 ? _scrollController.position.maxScrollExtent :
+              currentIndex == 1 ? _barsWidth[0]:
+                offset,
           duration: const Duration(milliseconds: 100),
           curve: Curves.linear
       );
@@ -586,12 +638,12 @@ class _TabBarState extends State<_TabBar> {
           children: [
             Expanded(
               child: ListView.builder(
-                  controller: _scrollController,
-                  scrollDirection: Axis.horizontal,
-                  itemBuilder: (context, index) {
-                    return _statusBar(MediaStatus.status(widget.isAnime, includeAll: true)[index]);
-                  },
-                  itemCount: MediaStatus.status(widget.isAnime, includeAll: true).length
+                controller: _scrollController,
+                scrollDirection: Axis.horizontal,
+                itemBuilder: (context, index) {
+                  return _statusBar(MediaStatus.status(widget.isAnime, includeAll: true)[index]);
+                },
+                itemCount: MediaStatus.status(widget.isAnime, includeAll: true).length
               ),
             ),
             IconButton(
@@ -607,12 +659,6 @@ class _TabBarState extends State<_TabBar> {
   }
 }
 
-/*
-   TODO
-    Make the page to persists its state across page change,
-    update the page accordingly based on updated media's status.
-    (my head was already full while writing this sht)
- */
 class _Page extends StatefulWidget {
   MediaStatus status;
   List<MediaNode>? nodes;
@@ -633,7 +679,6 @@ class _Page extends StatefulWidget {
 
 class _PageState extends State<_Page> {
   bool _isLoading = true;
-  List<MediaNode>? _nodes;
 
   void _fetchMedia(int limit, bool isAnime) async {
     MalAPIHelper.userMedia(
@@ -643,11 +688,17 @@ class _PageState extends State<_Page> {
           "fields" : isAnime  ?
             GlobalConstant.mandatoryFields : GlobalConstant.mangaMandatoryFields
         },
-        (nodes) {
+        (data, nodes) {
           setState(() {
-            _nodes = nodes;
-            _isLoading = false;
+            widget.nodes = nodes;
           });
+          if (data.paging.next != null) {
+            _getNextPage(data);
+          } else {
+            setState(() {
+              _isLoading = false;
+            });
+          }
           Provider.of<GlobalNotifier>(context, listen: false).enableMediaToggleChange = true;
           _log.i("onFirstCall is null: ${widget.doWithNewNodes == null}");
           widget.doWithNewNodes?.call(nodes);
@@ -656,19 +707,70 @@ class _PageState extends State<_Page> {
     );
   }
 
+  void _getNextPage(Data prevData) {
+    MalAPIHelper.prevNextPage(
+        prevData.paging.next!,
+        (List<MediaNode> nodes) {
+          setState(() {
+            widget.nodes?.addAll(nodes);
+          });
+        },
+        (Paging paging) {},
+        dataCallback: (Data data) {
+          if (data.paging.next != null) {
+            _getNextPage(data);
+          } else {
+            setState(() {
+              _isLoading = false;
+            });
+          }
+        }
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     _log.i("init user list: ${widget.status.name}");
-    if (widget.nodes != null) {
-      setState(() {
-        _nodes = widget.nodes;
-        _isLoading = false;
-      });
-    } else {
+    if (widget.nodes == null) {
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
         Provider.of<GlobalNotifier>(context, listen: false).enableMediaToggleChange = false;
-        _fetchMedia(100, widget.isAnime);
+        _LoadData.fetchMedia(
+            status: widget.status.jsonName,
+            isAnime: widget.isAnime,
+            limit: 100,
+            onNewNodes: (newNodes) {
+              if (newNodes.isEmpty) {
+                setState(() {
+                  _isLoading = false;
+                  widget.nodes = [];
+                });
+              } else {
+                setState(() {
+                  widget.nodes = newNodes;
+                });
+              }
+              // ensure the parent's nodes is not null in initial fetch,
+              // hence avoid null check error on onComplete callback.
+              widget.doWithNewNodes?.call(newNodes);
+            },
+            onNewLoaded: (newLoadedNodes) {
+              setState(() {
+                widget.nodes?.addAll(newLoadedNodes);
+              });
+            },
+            onComplete: () {
+              setState(() {
+                _isLoading = false;
+              });
+              Provider.of<GlobalNotifier>(context, listen: false).enableMediaToggleChange = true;
+              widget.doWithNewNodes?.call(widget.nodes!);
+            }
+        );
+      });
+    } else {
+      setState(() {
+        _isLoading = false;
       });
     }
   }
@@ -677,7 +779,6 @@ class _PageState extends State<_Page> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final isReady = Provider.of<GlobalNotifier>(context).changeMediaTypeReady;
-    final statusNeedUpdate = Provider.of<GlobalNotifier>(context).statusNeedUpdate;
     // transition from anime to manga and vice versa
     if (isReady) {
       setState(() {
@@ -688,11 +789,38 @@ class _PageState extends State<_Page> {
       });
       if (widget.nodes != null) {
         setState(() {
-          _nodes = widget.nodes;
           _isLoading = false;
         });
       } else {
-        _fetchMedia(100, widget.isAnime);
+        _LoadData.fetchMedia(
+            status: widget.status.jsonName,
+            isAnime: widget.isAnime,
+            limit: 100,
+            onNewNodes: (newNodes) {
+              if (newNodes.isEmpty) {
+                setState(() {
+                  _isLoading = false;
+                  widget.nodes = [];
+                });
+              } else {
+                setState(() {
+                  widget.nodes = newNodes;
+                });
+              }
+            },
+            onNewLoaded: (newLoadedNodes) {
+              setState(() {
+                widget.nodes?.addAll(newLoadedNodes);
+              });
+            },
+            onComplete: () {
+              setState(() {
+                _isLoading = false;
+              });
+              Provider.of<GlobalNotifier>(context, listen: false).enableMediaToggleChange = true;
+              widget.doWithNewNodes?.call(widget.nodes!);
+            }
+        );
       }
       Future.delayed(const Duration(milliseconds: 50)).whenComplete(() {
         Provider.of<GlobalNotifier>(context, listen: false).enableMediaToggleChange = false;
@@ -703,26 +831,96 @@ class _PageState extends State<_Page> {
 
   @override
   Widget build(BuildContext context) {
-    return _nodes == null || _isLoading ? const Align(
+    return widget.nodes == null || _isLoading ? const Align(
       child: CircularProgressIndicator(),
     ) :
-      _nodes!.isEmpty ? Align(
+      widget.nodes!.isEmpty ? Align(
         child: Text(
           "Nothing in the list",
           style: Theme.of(context).textTheme.bodyLarge,
         ),
       ) :
-      MMediaList(
-        nodes: _nodes!,
-        isAnime: widget.isAnime,
-        isSliver: false,
-        isCardDismissible: widget.status.jsonName.isEmpty ? false : true,
-        newNodes: (newNodes) {
-          widget.doWithNewNodes?.call(newNodes);
-          setState(() {
-            _nodes = newNodes;
-          });
-        },
+      Stack(
+        children: [
+          RemovableMediaList(
+              nodes: widget.nodes!,
+              isAnime: widget.isAnime,
+              status: widget.status
+          ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                color: widget.status.statusColor,
+                borderRadius: const BorderRadius.only(topLeft: Radius.circular(10)),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+              child: Text("${widget.nodes!.length} Entries"),
+            )
+          )
+        ],
       );
+  }
+}
+
+class _LoadData {
+
+  static void fetchMedia(
+    {required String status,
+    required bool isAnime,
+    required int limit,
+    // init new nodes, not for loading next nodes
+    required void Function(List<MediaNode>) onNewNodes,
+    required void Function(List<MediaNode>) onNewLoaded,
+    required VoidCallback onComplete,}
+  ) {
+    MalAPIHelper.userMedia(
+        isAnime,
+        {
+          "limit" : limit,
+          "fields" : isAnime  ?
+          GlobalConstant.mandatoryFields : GlobalConstant.mangaMandatoryFields
+        },
+        (data, nodes) {
+          if (nodes.isEmpty) {
+            onNewNodes(nodes);
+            return;
+          } else {
+            onNewNodes(nodes);
+          }
+          if (data.paging.next != null) {
+            _getNextNodes(
+              data.paging.next ?? "",
+              onNewLoaded: onNewLoaded,
+              onLoadComplete: onComplete
+            );
+          } else {
+            onComplete();
+          }
+        },
+        status: status.isNotEmpty ? status : null
+    );
+  }
+
+  static void _getNextNodes(
+    String nextPage,
+    {void Function(List<MediaNode>)? onNewLoaded,
+    VoidCallback? onLoadComplete}
+  ) {
+    MalAPIHelper.prevNextPage(
+      nextPage,
+      (newLoaded) {
+        onNewLoaded?.call(newLoaded);
+      },
+      (p0) {},
+      dataCallback: (Data data) {
+        if (data.paging.next != null) {
+          _getNextNodes(data.paging.next ?? "", onNewLoaded: onNewLoaded, onLoadComplete: onLoadComplete);
+        } else {
+          onLoadComplete?.call();
+        }
+      }
+    );
   }
 }

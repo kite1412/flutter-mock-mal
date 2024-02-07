@@ -17,7 +17,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 
+import '../model/data.dart';
 import '../model/media_node.dart';
 import '../other/media_category.dart';
 import 'category_bar.dart';
@@ -49,6 +51,8 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
   late final TextEditingController _textEditingController;
   late final FocusNode _focusNode;
   late final ScrollController _scrollController;
+  Data _suggestionsData = Data.empty();
+  Data _onGoingData = Data.empty();
 
   List<dynamic> categoryNodes(int index) {
     switch(index) {
@@ -170,11 +174,21 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
         _suggestionsNodes = nodes;
       });
     },
+    dataCallback: (data) {
+      setState(() {
+        _suggestionsData = data;
+      });
+    },
       queryParam: _categories()[1].queryParams
     );
     MalAPIHelper.mediaWithCategory(true, _categories()[2].path, (nodes) {
       setState(() {
         _seasonalNodes = nodes;
+      });
+    },
+    dataCallback: (data) {
+      setState(() {
+        _onGoingData = data;
       });
     },
       queryParam: _categories()[2].queryParams
@@ -401,11 +415,13 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
                         nodes: _suggestionsNodes,
                         mediaCategory: _categories()[1],
                         gradientColors: _categories()[1].gradients,
+                        data: _suggestionsData,
                       ),
                       GeneralCategory(
                         nodes: _seasonalNodes,
                         mediaCategory: _categories()[2],
                         gradientColors: _categories()[2].gradients,
+                        data: _onGoingData,
                       ),
                     ]
                 ),

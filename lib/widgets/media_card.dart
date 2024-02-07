@@ -1,9 +1,11 @@
 import 'package:anime_gallery/api/api_helper.dart';
 import 'package:anime_gallery/model/update_media.dart';
+import 'package:anime_gallery/notifier/removable_list_notifier.dart';
 import 'package:anime_gallery/notifier/update_media_notifier.dart';
 import 'package:anime_gallery/util/global_constant.dart';
 import 'package:anime_gallery/widgets/media_detail.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -188,17 +190,17 @@ class _MediaListState extends State<MediaList> {
 }
 
 class MediaCard extends StatefulWidget {
-  final MediaNode media;
+  MediaNode media;
   final bool isAnime;
-  final void Function(MediaNode, UpdateType) informOnUpdate;
-  bool isDismissible;
+  void Function(MediaNode)? onTap;
+  void Function(MediaNode, UpdateType)? informOnUpdate;
 
   MediaCard({
     super.key,
     required this.media,
     required this.isAnime,
-    required this.informOnUpdate,
-    this.isDismissible = false
+    this.informOnUpdate,
+    this.onTap
   });
 
   @override
@@ -206,8 +208,6 @@ class MediaCard extends StatefulWidget {
 }
 
 class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMixin {
-  MediaNode _media = MediaNode.empty();
-  bool _dismiss = false;
   final _heroTag = const Uuid().v4();
   var _isContentSensitive = false;
   final Logger _log = Logger();
@@ -215,9 +215,9 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
   late final Animation<double> _heightAnimation;
 
   Widget _showWarning(BuildContext context) {
-    if (_media.genres != null) {
+    if (widget.media.genres != null) {
       String warningType = "";
-      for (var value in _media.genres!) {
+      for (var value in widget.media.genres!) {
         switch(value.name) {
           case "Ecchi":
             warningType = "Ecchi";
@@ -246,7 +246,7 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
   }
 
   Widget _mediaStatusBar(BuildContext context) {
-    var userStatus = _media.userMediaStatus!;
+    var userStatus = widget.media.userMediaStatus!;
     Color conColor = Colors.transparent;
     String status = "";
     switch (userStatus.status) {
@@ -285,7 +285,6 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
   @override
   void initState() {
     super.initState();
-    _media = widget.media;
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 750)
@@ -303,39 +302,22 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
   void didChangeDependencies() {
     super.didChangeDependencies();
     final updatedMediaId = Provider.of<GlobalNotifier>(context).updatedMediaId;
-    final alreadyDismissed = Provider.of<GlobalNotifier>(context).isDismissalDone;
-    // status in user's media list change, remove the item visually,
-    // deleting the changed-status item done in the calling place of this MediaCard
-    // by using MediaCard.informOnUpdate(MediaNode, UpdateType) callback.
-    // used in every page in user list except 'all' page.
-    if (updatedMediaId != -1 && _media.id == updatedMediaId && widget.isDismissible && !alreadyDismissed) {
-      _log.i("dismissed: $updatedMediaId");
-      setState(() {
-        _dismiss = true;
-      });
-      Future.delayed(const Duration(milliseconds: 300)).whenComplete(() {
-        _animationController.forward();
-        Provider.of<GlobalNotifier>(context, listen: false).updatedMediaId = -1;
-        Provider.of<GlobalNotifier>(context, listen: false).isDismissalDone = true;
-        widget.informOnUpdate(_media, UpdateType.delete);
-      });
-    } else {
-      if (updatedMediaId != -1 && updatedMediaId == _media.id) {
-        MalAPIHelper.fetchMediaById(
-            _media.id,
-            widget.isAnime,
-            (updatedNode) {
-              Provider.of<GlobalNotifier>(context, listen: false).statusBeforeUpdate = _media.userMediaStatus?.status ?? "*";
-              setState(() {
-                _media = updatedNode;
-              });
-              Provider.of<GlobalNotifier>(context, listen: false).updatedMediaId = -1;
-              widget.informOnUpdate(updatedNode, UpdateType.edit);
-            },
-            fields: widget.isAnime ? GlobalConstant.mandatoryFields : GlobalConstant.mangaMandatoryFields
-        );
-        _log.i("from media card");
-      }
+    if (updatedMediaId != -1 && updatedMediaId == widget.media.id) {
+      _log.w("REFLECT CHANGE");
+      MalAPIHelper.fetchMediaById(
+          widget.media.id,
+          widget.isAnime,
+              (updatedNode) {
+            Provider.of<GlobalNotifier>(context, listen: false).statusBeforeUpdate = widget.media.userMediaStatus?.status ?? "*";
+            setState(() {
+              widget.media = updatedNode;
+            });
+            Provider.of<GlobalNotifier>(context, listen: false).updatedMediaId = -1;
+            widget.informOnUpdate?.call(updatedNode, UpdateType.edit);
+          },
+          fields: widget.isAnime ? GlobalConstant.mandatoryFields : GlobalConstant.mangaMandatoryFields
+      );
+      _log.i("from media card");
     }
   }
 
@@ -359,18 +341,21 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
                   topRight: Radius.circular(10),
                   bottomRight: Radius.circular(10)
               ),
-              onTap: () => Navigator.of(context).push(
+              onTap: () {
+                Navigator.of(context).push(
                   MaterialPageRoute(
                       builder: (context) {
                         return MediaDetail(
-                          media: _media,
+                          media: widget.media,
                           isAnime: widget.isAnime,
                           heroTag: _heroTag,
                           isContentSensitive: _isContentSensitive,
                         );
                       }
                   )
-              ),
+                );
+                widget.onTap?.call(widget.media);
+              },
               child: Row(
                 mainAxisSize: MainAxisSize.max,
                 children: [
@@ -379,7 +364,7 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
                       Hero(
                         tag: _heroTag,
                         child: Image(
-                          image: Image.network(_media.mediaPicture.medium).image,
+                          image: Image.network(widget.media.mediaPicture.medium).image,
                           height: 140,
                           width: 110,
                           fit: BoxFit.cover,
@@ -394,7 +379,7 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
                               children: [
                                 const Icon(Icons.star_rounded, size: 12, color: Colors.white,),
                                 Text(
-                                  InfoBar.assertNullNumField(_media.mean).toString(),
+                                  InfoBar.assertNullNumField(widget.media.mean).toString(),
                                   style: Theme.of(context).textTheme.bodySmall!.copyWith(color: Colors.white),),
                               ],
                             ),
@@ -426,33 +411,24 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Flexible(
-              flex: _dismiss ? 1 : 0,
-              child: Text(
-                _media.title,
-                style: tStyle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+            Text(
+              widget.media.title,
+              style: tStyle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            Flexible(
-              flex: _dismiss ? 1 : 0,
-              child: const SizedBox(height: 4,)
-            ),
-            Flexible(
-              flex: _dismiss ? 1 : 0,
-              child: Text(
-                InfoBar.assertNullStringField(_media.synopsis),
-                style: cStyle,
-                overflow: TextOverflow.ellipsis,
-                maxLines: 4,
-              ),
+            const SizedBox(height: 4,),
+            Text(
+              InfoBar.assertNullStringField(widget.media.synopsis),
+              style: cStyle,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 4,
             ),
             Expanded(
               child: Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
-                  children: InfoBar.bars(_media, context)..add(
-                      _media.userMediaStatus != null ?
+                  children: InfoBar.bars(widget.media, context)..add(
+                      widget.media.userMediaStatus != null ?
                       Expanded(
                           child: Align(
                             alignment: AlignmentDirectional.bottomEnd,

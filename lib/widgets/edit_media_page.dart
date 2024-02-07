@@ -20,6 +20,7 @@ class EditMediaPage extends StatefulWidget {
   final void Function(bool) onPopInvoked;
   final VoidCallback onEditUpdated;
   final void Function(bool) onRemoved;
+  final bool cardEnableUpdate;
 
   const EditMediaPage({
     super.key,
@@ -27,7 +28,8 @@ class EditMediaPage extends StatefulWidget {
     required this.isAnime,
     required this.onPopInvoked,
     required this.onEditUpdated,
-    required this.onRemoved
+    required this.onRemoved,
+    required this.cardEnableUpdate
   });
 
   @override
@@ -251,7 +253,9 @@ class _EditMediaPageState extends State<EditMediaPage> {
         Provider.of<GlobalNotifier>(context, listen: false).updated = true;
         Provider.of<GlobalNotifier>(context, listen: false).status = -1;
         Provider.of<GlobalNotifier>(context, listen: false).selectedIndex = 0;
-        Provider.of<GlobalNotifier>(context, listen: false).updatedMediaId = widget.media.id;
+        if (widget.cardEnableUpdate) {
+          Provider.of<GlobalNotifier>(context, listen: false).updatedMediaId = widget.media.id;
+        }
 
         widget.onEditUpdated();
       },
@@ -282,7 +286,9 @@ class _EditMediaPageState extends State<EditMediaPage> {
               Provider.of<GlobalNotifier>(context, listen: false).updated = true;
               Provider.of<GlobalNotifier>(context, listen: false).status = -1;
               Provider.of<GlobalNotifier>(context, listen: false).selectedIndex = 0;
-              Provider.of<GlobalNotifier>(context, listen: false).updatedMediaId = widget.media.id;
+              if (widget.cardEnableUpdate) {
+                Provider.of<GlobalNotifier>(context, listen: false).updatedMediaId = widget.media.id;
+              }
               widget.onRemoved(isUpdated);
             }
         );
@@ -697,7 +703,7 @@ class _NumberSelectionState extends State<_NumberSelection> {
                 )
               );
             },
-            itemCount: widget.isScore ? 11 : widget.length == 0 ? 10000 : widget.length + 1,
+            itemCount: widget.isScore ? 11 : widget.length == 0 ? 5000 : widget.length + 1,
             itemSize: 100,
             onItemFocus: (currentIndex) {
               setState(() {

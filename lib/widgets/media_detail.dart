@@ -2,6 +2,7 @@ import 'package:anime_gallery/api/api_helper.dart';
 import 'package:anime_gallery/model/alternative_titles.dart';
 import 'package:anime_gallery/model/update_media.dart';
 import 'package:anime_gallery/model/user_media_status.dart';
+import 'package:anime_gallery/notifier/removable_list_notifier.dart';
 import 'package:anime_gallery/notifier/update_media_notifier.dart';
 import 'package:anime_gallery/util/global_constant.dart';
 import 'package:anime_gallery/widgets/edit_media_page.dart';
@@ -41,6 +42,7 @@ class _MediaDetailState extends State<MediaDetail> {
   bool _isAbleExpandSynopsis = false;
   bool _isShowingFullSynopsis = false;
   bool _enableDismissal = false;
+  String _calledFromPage = "*";
   final Logger _log = Logger();
   late final PageController _pageController;
 
@@ -158,6 +160,7 @@ class _MediaDetailState extends State<MediaDetail> {
 
   SnackBar _snackBar(String text) {
     return SnackBar(
+      duration: const Duration(milliseconds: 500),
       content: Text(
         text,
         style: Theme.of(context).textTheme.bodyLarge!.copyWith(
@@ -170,14 +173,21 @@ class _MediaDetailState extends State<MediaDetail> {
 
   void _checkDismissal() {
     if (_enableDismissal) {
-      Provider.of<GlobalNotifier>(context, listen: false).updatedMediaId = _media.id;
-      Provider.of<GlobalNotifier>(context, listen: false).isDismissalDone = false;
+      Provider.of<RemovableListNotifier>(context, listen: false).removeCurrentItem = true;
+      Provider.of<GlobalNotifier>(context, listen: false).currentSessionAlreadyUpdated = false;
     }
   }
 
   @override
   void initState() {
     super.initState();
+    _log.i(widget.heroTag);
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      setState(() {
+        _calledFromPage = Provider.of<RemovableListNotifier>(context, listen: false).statusPage;
+      });
+      Provider.of<RemovableListNotifier>(context, listen: false).statusPage = "*";
+    });
     _log.i("media detail init");
     _media = widget.media;
     _pageController = PageController();
@@ -216,11 +226,17 @@ class _MediaDetailState extends State<MediaDetail> {
         _media.id,
         widget.isAnime,
         (MediaNode node) {
+          Provider.of<GlobalNotifier>(context, listen: false).statusNeedUpdate = node.userMediaStatus?.status ?? "*";
+          if (_calledFromPage.isEmpty) {
+            Provider.of<GlobalNotifier>(context, listen: false).statusBeforeUpdate = _media.userMediaStatus?.status ?? "*";
+          }
           _decideFabColor(node.userMediaStatus);
           if (_media.userMediaStatus?.status != node.userMediaStatus?.status) {
-            setState(() {
-              _enableDismissal = true;
-            });
+            if (_calledFromPage != "*") {
+              setState(() {
+                _enableDismissal = true;
+              });
+            }
           }
           setState(() {
             _media = node;
@@ -249,7 +265,6 @@ class _MediaDetailState extends State<MediaDetail> {
         PopScope(
           onPopInvoked: (didPop) {
             _checkDismissal();
-            print("dismiss: $_enableDismissal");
           },
           child: Scaffold(
             body: LayoutBuilder(builder: (context, constraint) {
@@ -432,12 +447,11 @@ class _MediaDetailState extends State<MediaDetail> {
           onPopInvoked: _onPopInvoked,
           onEditUpdated: () {
             ScaffoldMessenger.of(context).showSnackBar(_snackBar("List updated"));
-
           },
           onRemoved: (isUpdated) {
             ScaffoldMessenger.of(context).showSnackBar(_snackBar(isUpdated ? "Removed" : "Fail to remove"));
-
           },
+          cardEnableUpdate: _calledFromPage == "*",
         ),
       ],
     );

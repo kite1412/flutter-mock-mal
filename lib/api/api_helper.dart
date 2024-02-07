@@ -86,9 +86,7 @@ class MalAPIHelper {
         _extractMediaNodes(nodes, data);
         callback(nodes);
       }
-      if (dataCallback != null) {
-        dataCallback(data);
-      }
+      dataCallback?.call(data);
     } catch (e) {
       _log.e(e);
     }
@@ -130,17 +128,23 @@ class MalAPIHelper {
     }
   }
 
+  // So messy, just use the Data callback instead next time, also for any other helper methods.
   static void prevNextPage(
     String nextPage,
     ApiCallback<List<MediaNode>> callback,
-    ApiCallback<Paging> pagingCallback
+    ApiCallback<Paging> pagingCallback,
+    {void Function(Data)? dataCallback}
   ) async {
     try {
+      if (nextPage.isEmpty) {
+        return;
+      }
       final MalAPI api = MalAPIImpl();
       final Data data = await api.nextPage(nextPage);
       final List<MediaNode> nodes = [];
       _extractMediaNodes(nodes, data);
       callback(nodes);
+      dataCallback?.call(data);
       data.paging.next != null || data.paging.previous != null ?
         pagingCallback(data.paging) : _log.i("paging callback is not invoked, paging's object empty");
     } catch(e) {
@@ -193,7 +197,7 @@ class MalAPIHelper {
   static void userMedia(
     bool isAnime,
     Map<String, dynamic> queryParams,
-    ApiCallback<List<MediaNode>> callback,
+    void Function(Data, List<MediaNode>) callback,
     {String? status,
     String? sort,}
   ) async {
@@ -208,7 +212,7 @@ class MalAPIHelper {
       final Data data = await api.fetchMedia(path, queryParams);
       _extractMediaNodes(nodes, data);
       _log.i("success getting user media list with length: ${nodes.length}");
-      callback(nodes);
+      callback(data, nodes);
     } catch (e) {
       _log.e(e);
     }

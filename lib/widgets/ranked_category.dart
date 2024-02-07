@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:anime_gallery/model/node_with_rank.dart';
 import 'package:anime_gallery/notifier/update_media_notifier.dart';
 import 'package:anime_gallery/other/media_category.dart';
+import 'package:anime_gallery/widgets/category_page.dart';
 import 'package:anime_gallery/widgets/media_ranked_display.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -33,6 +34,7 @@ class RankCategory extends StatefulWidget {
 
 class _RankCategoryState extends State<RankCategory> {
   int _initialIndex = 0;
+  final String _heroTag = const Uuid().v4();
 
   @override
   Widget build(BuildContext context) {
@@ -81,24 +83,45 @@ class _RankCategoryState extends State<RankCategory> {
                   animationDuration: 250,
                   initialLabelIndex: _initialIndex,
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      widget.mediaCategory.category,
-                      style: Theme.of(context).textTheme.displayMedium!
-                          .copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontStyle: FontStyle.italic,
-                          color: Colors.white
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) {
+                          return RankedCategoryPage(
+                            category: "Rank",
+                            nodes: widget.nodes,
+                            isAnime: widget.isAnime,
+                            heroTag: _heroTag,
+                            gradientColors: widget.gradientColors,
+                          );
+                        }
+                      )
+                    );
+                  },
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Hero(
+                        tag: _heroTag,
+                        child: Text(
+                          widget.mediaCategory.category,
+                          style: Theme.of(context).textTheme.displayMedium!
+                              .copyWith(
+                              fontWeight: FontWeight.bold,
+                              fontStyle: FontStyle.italic,
+                              color: Colors.white
+                          ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 4,),
-                    const Padding(
-                      padding: EdgeInsets.only(top: 4),
-                      child: Icon(Icons.arrow_forward_rounded, color: Colors.white,),
-                    ),
-                  ],
+                      const SizedBox(width: 4,),
+                      const Padding(
+                        padding: EdgeInsets.only(top: 4),
+                        child: Icon(Icons.arrow_forward_rounded, color: Colors.white,),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
