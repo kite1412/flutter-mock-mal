@@ -1,6 +1,6 @@
 import 'package:anime_gallery/api/api_helper.dart';
 import 'package:anime_gallery/model/node_with_rank.dart';
-import 'package:anime_gallery/notifier/update_media_notifier.dart';
+import 'package:anime_gallery/notifier/global_notifier.dart';
 import 'package:anime_gallery/util/global_constant.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -84,9 +84,12 @@ class _MediaRankedDisplayState extends State<MediaRankedDisplay> {
                   ),
                   Positioned(
                     child: Container(
-                      decoration: const BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.only(topLeft: Radius.circular(8))
+                      decoration: BoxDecoration(
+                          color: widget.media.ranking.rank == 1 ? const Color.fromARGB(255, 255, 180, 0) :
+                                   widget.media.ranking.rank == 2 ? Colors.grey :
+                                     widget.media.ranking.rank == 3 ? const Color.fromARGB(255, 205, 100, 30) :
+                                       Colors.black54,
+                          borderRadius: const BorderRadius.only(topLeft: Radius.circular(8))
                       ),
                       padding: const EdgeInsets.only(left: 2, right: 2),
                       child: Text(

@@ -1,7 +1,7 @@
 import 'package:anime_gallery/api/api_helper.dart';
 import 'package:anime_gallery/model/update_media.dart';
 import 'package:anime_gallery/notifier/removable_list_notifier.dart';
-import 'package:anime_gallery/notifier/update_media_notifier.dart';
+import 'package:anime_gallery/notifier/global_notifier.dart';
 import 'package:anime_gallery/util/global_constant.dart';
 import 'package:anime_gallery/widgets/media_detail.dart';
 import 'package:flutter/material.dart';

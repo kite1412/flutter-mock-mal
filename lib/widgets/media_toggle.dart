@@ -1,4 +1,4 @@
-import 'package:anime_gallery/notifier/update_media_notifier.dart';
+import 'package:anime_gallery/notifier/global_notifier.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

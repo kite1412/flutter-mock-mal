@@ -64,7 +64,7 @@ class _GeneralCategoryState extends State<GeneralCategory> {
                         MaterialPageRoute(builder: (context) {
                           return CategoryPage(
                             category: widget.mediaCategory.category,
-                            nodes: widget.nodes,
+                            nodes: [...widget.nodes],
                             heroTag: _heroTag,
                             gradientColors: widget.gradientColors,
                             referenceData: widget.data,

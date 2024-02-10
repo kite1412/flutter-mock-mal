@@ -217,4 +217,19 @@ class MalAPIHelper {
       _log.e(e);
     }
   }
+
+  static void rankedNextPage(
+    String nextPage,
+    {void Function(DataWithRank)? dataCallback,
+    void Function(List<MediaNodeRanked>)? nodesCallback}
+   ) async {
+    try {
+      final MalAPI api = MalAPIImpl();
+      final data = await api.rankedNextPage(nextPage);
+      dataCallback?.call(data);
+      nodesCallback?.call(data.data);
+    } catch(e) {
+      _log.e(e);
+    }
+  }
 }

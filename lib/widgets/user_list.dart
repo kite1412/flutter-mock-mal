@@ -1,6 +1,6 @@
 import 'package:anime_gallery/api/api_helper.dart';
 import 'package:anime_gallery/model/user_information.dart';
-import 'package:anime_gallery/notifier/update_media_notifier.dart';
+import 'package:anime_gallery/notifier/global_notifier.dart';
 import 'package:anime_gallery/other/media_status.dart';
 import 'package:anime_gallery/util/global_constant.dart';
 import 'package:anime_gallery/widgets/media_list.dart';
@@ -9,6 +9,7 @@ import 'package:anime_gallery/widgets/removable_media_list.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
@@ -42,7 +43,6 @@ class _UserListState extends State<UserList>
   bool _isBarAutoJumpEnable = true;
   bool _isAppBarOnHide = false;
   bool _isAnime = true;
-  bool _ensureOneUpdate = true;
   List<MediaStatus> _mediaStatuses = MediaStatus.status(true, includeAll: true);
   List<MediaNode>? _allNodes;
   List<MediaNode>? _onGoingNodes;
@@ -63,7 +63,6 @@ class _UserListState extends State<UserList>
   }
 
   void _scrollListener() {
-    _log.i("all: ${_allNodes?.length}\n on going: ${_onGoingNodes?.length}\n completed: ${_completedNodes?.length}");
     if (_scrollController.offset >= kToolbarHeight) {
       if (!_isAppBarOnHide) {
         setState(() {
@@ -182,6 +181,11 @@ class _UserListState extends State<UserList>
           status: status ?? "",
           isAnime: _isAnime,
           limit: 100,
+          doBeforeLoad: () {
+            if (status == null) {
+              Provider.of<GlobalNotifier>(context, listen: false).allPageUpdate = true;
+            }
+          },
           onNewNodes: (newNodes) {
             _decideNodes(newNodes, status);
           },
@@ -194,34 +198,12 @@ class _UserListState extends State<UserList>
             } else {
               Provider.of<GlobalNotifier>(context, listen: false).statusBeforeUpdate = "*";
             }
+            if (status == null) {
+              Provider.of<GlobalNotifier>(context, listen: false).allPageUpdate = false;
+            }
           }
       );
     }
-  }
-
-  int _showTotalEntries() {
-    int totalEntries = 0;
-    switch(_selectedStatusIndex) {
-      case 0:
-        totalEntries = _allNodes?.length ?? 0;
-        break;
-      case 1:
-        totalEntries = _onGoingNodes?.length ?? 0;
-        break;
-      case 2:
-        totalEntries = _completedNodes?.length ?? 0;
-        break;
-      case 3:
-        totalEntries = _onHoldNodes?.length ?? 0;
-        break;
-      case 4:
-        totalEntries = _droppedNodes?.length ?? 0;
-        break;
-      case 5:
-        totalEntries = _onPlanNodes?.length ?? 0;
-        break;
-    }
-    return totalEntries;
   }
 
   @override
@@ -252,7 +234,9 @@ class _UserListState extends State<UserList>
       });
       _fetchMedia(statusNeedUpdate);
       _fetchMedia(statusBeforeUpdate, isUpdatingPriorStatus: true);
-      _fetchMedia(null);
+      if (statusNeedUpdate.isNotEmpty) {
+        _fetchMedia(null);
+      }
     }
     if (_isAnime != isAnime) {
       setState(() {
@@ -679,52 +663,19 @@ class _Page extends StatefulWidget {
 
 class _PageState extends State<_Page> {
   bool _isLoading = true;
+  bool _isOnUpdate = false;
+  bool _warnOnce = true;
 
-  void _fetchMedia(int limit, bool isAnime) async {
-    MalAPIHelper.userMedia(
-        isAnime,
-        {
-          "limit" : limit,
-          "fields" : isAnime  ?
-            GlobalConstant.mandatoryFields : GlobalConstant.mangaMandatoryFields
-        },
-        (data, nodes) {
-          setState(() {
-            widget.nodes = nodes;
-          });
-          if (data.paging.next != null) {
-            _getNextPage(data);
-          } else {
-            setState(() {
-              _isLoading = false;
-            });
-          }
-          Provider.of<GlobalNotifier>(context, listen: false).enableMediaToggleChange = true;
-          _log.i("onFirstCall is null: ${widget.doWithNewNodes == null}");
-          widget.doWithNewNodes?.call(nodes);
-        },
-        status: widget.status.jsonName.isNotEmpty ? widget.status.jsonName : null
-    );
-  }
-
-  void _getNextPage(Data prevData) {
-    MalAPIHelper.prevNextPage(
-        prevData.paging.next!,
-        (List<MediaNode> nodes) {
-          setState(() {
-            widget.nodes?.addAll(nodes);
-          });
-        },
-        (Paging paging) {},
-        dataCallback: (Data data) {
-          if (data.paging.next != null) {
-            _getNextPage(data);
-          } else {
-            setState(() {
-              _isLoading = false;
-            });
-          }
-        }
+  SnackBar _snackBar() {
+    return SnackBar(
+      content: Text(
+        "Almost done...",
+        style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Colors.white),
+      ),
+      backgroundColor: Theme.of(context).colorScheme.primary,
+      duration: const Duration(milliseconds: 1000),
+      behavior: SnackBarBehavior.floating,
+      width: 200,
     );
   }
 
@@ -742,9 +693,10 @@ class _PageState extends State<_Page> {
             onNewNodes: (newNodes) {
               if (newNodes.isEmpty) {
                 setState(() {
-                  _isLoading = false;
                   widget.nodes = [];
+                  _isLoading = false;
                 });
+                Provider.of<GlobalNotifier>(context, listen: false).enableMediaToggleChange = true;
               } else {
                 setState(() {
                   widget.nodes = newNodes;
@@ -752,20 +704,29 @@ class _PageState extends State<_Page> {
               }
               // ensure the parent's nodes is not null in initial fetch,
               // hence avoid null check error on onComplete callback.
-              widget.doWithNewNodes?.call(newNodes);
+              widget.doWithNewNodes?.call(widget.nodes!);
+            },
+            isLoadNew: (isLoadNew) {
+              if (isLoadNew) {
+                if (_warnOnce) {
+                  ScaffoldMessenger.of(context).showSnackBar(_snackBar());
+                  _warnOnce = false;
+                }
+              }
             },
             onNewLoaded: (newLoadedNodes) {
               setState(() {
-                widget.nodes?.addAll(newLoadedNodes);
+                widget.nodes!.addAll(newLoadedNodes);
               });
             },
             onComplete: () {
               setState(() {
                 _isLoading = false;
               });
+              _warnOnce = true;
               Provider.of<GlobalNotifier>(context, listen: false).enableMediaToggleChange = true;
               widget.doWithNewNodes?.call(widget.nodes!);
-            }
+            },
         );
       });
     } else {
@@ -779,6 +740,32 @@ class _PageState extends State<_Page> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final isReady = Provider.of<GlobalNotifier>(context).changeMediaTypeReady;
+    final needUpdate = Provider.of<GlobalNotifier>(context).statusNeedUpdate;
+    final allPageUpdate = Provider.of<GlobalNotifier>(context).allPageUpdate;
+    if (needUpdate == widget.status.jsonName && needUpdate != "*") {
+      _log.w("executed");
+      setState(() {
+        _isOnUpdate = true;
+      });
+    } else {
+      if (_isOnUpdate && needUpdate == "*") {
+        setState(() {
+          _isOnUpdate = false;
+        });
+      }
+    }
+    if (allPageUpdate && widget.status.jsonName.isEmpty) {
+      setState(() {
+        _isOnUpdate = true;
+      });
+    } else {
+      if (_isOnUpdate && widget.status.jsonName.isEmpty) {
+        setState(() {
+          _isOnUpdate = false;
+        });
+      }
+    }
+
     // transition from anime to manga and vice versa
     if (isReady) {
       setState(() {
@@ -799,16 +786,30 @@ class _PageState extends State<_Page> {
             onNewNodes: (newNodes) {
               if (newNodes.isEmpty) {
                 setState(() {
-                  _isLoading = false;
                   widget.nodes = [];
+                  _isLoading = false;
                 });
+                Provider.of<GlobalNotifier>(context, listen: false).enableMediaToggleChange = true;
               } else {
                 setState(() {
                   widget.nodes = newNodes;
                 });
               }
+              widget.doWithNewNodes?.call(newNodes);
+            },
+            isLoadNew: (isLoadNew) {
+              if (isLoadNew) {
+                if (_warnOnce) {
+                  ScaffoldMessenger.of(context).showSnackBar(_snackBar());
+                  _warnOnce = false;
+                }
+              }
             },
             onNewLoaded: (newLoadedNodes) {
+              if (_warnOnce) {
+                ScaffoldMessenger.of(context).showSnackBar(_snackBar());
+                _warnOnce = false;
+              }
               setState(() {
                 widget.nodes?.addAll(newLoadedNodes);
               });
@@ -817,6 +818,7 @@ class _PageState extends State<_Page> {
               setState(() {
                 _isLoading = false;
               });
+              _warnOnce = true;
               Provider.of<GlobalNotifier>(context, listen: false).enableMediaToggleChange = true;
               widget.doWithNewNodes?.call(widget.nodes!);
             }
@@ -843,22 +845,28 @@ class _PageState extends State<_Page> {
       Stack(
         children: [
           RemovableMediaList(
-              nodes: widget.nodes!,
-              isAnime: widget.isAnime,
-              status: widget.status
+            nodes: widget.nodes!,
+            isAnime: widget.isAnime,
+            status: widget.status,
           ),
-          Positioned(
-            bottom: 0,
+          AnimatedPositioned(
+            bottom: !_isOnUpdate ? 0 : -50,
             right: 0,
+            duration: const Duration(milliseconds: 500),
             child: Container(
               decoration: BoxDecoration(
                 color: widget.status.statusColor,
                 borderRadius: const BorderRadius.only(topLeft: Radius.circular(10)),
               ),
               padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-              child: Text("${widget.nodes!.length} Entries"),
+              child: Text(
+                "${widget.nodes!.length} Entries",
+                style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                  color: Colors.white
+                ),
+              ),
             )
-          )
+          ),
         ],
       );
   }
@@ -873,7 +881,9 @@ class _LoadData {
     // init new nodes, not for loading next nodes
     required void Function(List<MediaNode>) onNewNodes,
     required void Function(List<MediaNode>) onNewLoaded,
-    required VoidCallback onComplete,}
+    required VoidCallback onComplete,
+    VoidCallback? doBeforeLoad,
+    void Function(bool)? isLoadNew}
   ) {
     MalAPIHelper.userMedia(
         isAnime,
@@ -882,7 +892,11 @@ class _LoadData {
           "fields" : isAnime  ?
           GlobalConstant.mandatoryFields : GlobalConstant.mangaMandatoryFields
         },
-        (data, nodes) {
+        (data, nodes) async {
+          if (doBeforeLoad != null) {
+            doBeforeLoad.call();
+            await Future.delayed(const Duration(milliseconds: 100));
+          }
           if (nodes.isEmpty) {
             onNewNodes(nodes);
             return;
@@ -890,12 +904,14 @@ class _LoadData {
             onNewNodes(nodes);
           }
           if (data.paging.next != null) {
+            isLoadNew?.call(true);
             _getNextNodes(
               data.paging.next ?? "",
               onNewLoaded: onNewLoaded,
               onLoadComplete: onComplete
             );
           } else {
+            isLoadNew?.call(false);
             onComplete();
           }
         },
@@ -916,7 +932,11 @@ class _LoadData {
       (p0) {},
       dataCallback: (Data data) {
         if (data.paging.next != null) {
-          _getNextNodes(data.paging.next ?? "", onNewLoaded: onNewLoaded, onLoadComplete: onLoadComplete);
+          _getNextNodes(
+            data.paging.next ?? "",
+            onNewLoaded: onNewLoaded,
+            onLoadComplete: onLoadComplete
+          );
         } else {
           onLoadComplete?.call();
         }

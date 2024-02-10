@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:anime_gallery/api/api_helper.dart';
 import 'package:anime_gallery/model/media_node.dart';
 import 'package:anime_gallery/model/user_media_status.dart';
-import 'package:anime_gallery/notifier/update_media_notifier.dart';
+import 'package:anime_gallery/notifier/global_notifier.dart';
 import 'package:anime_gallery/util/show_dialog.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -256,7 +256,6 @@ class _EditMediaPageState extends State<EditMediaPage> {
         if (widget.cardEnableUpdate) {
           Provider.of<GlobalNotifier>(context, listen: false).updatedMediaId = widget.media.id;
         }
-
         widget.onEditUpdated();
       },
       status: _updatedStatus,
@@ -573,7 +572,7 @@ class _NumberSelection extends StatefulWidget {
   final int length;
   final bool isScore;
   final bool isAnime;
-  /// TODO user from [media] instead
+  /// TODO user's status from [media] instead
   final UserMediaStatus? userMediaStatus;
   final void Function(int) onSelectedIndex;
 

@@ -1,9 +1,11 @@
 import 'dart:ui';
 
 import 'package:anime_gallery/api/api_helper.dart';
+import 'package:anime_gallery/model/data_with_node_ranked.dart';
 import 'package:anime_gallery/model/node_with_rank.dart';
-import 'package:anime_gallery/notifier/update_media_notifier.dart';
+import 'package:anime_gallery/notifier/global_notifier.dart';
 import 'package:anime_gallery/util/history.dart';
+import 'package:anime_gallery/util/refresh_content_util.dart';
 import 'package:anime_gallery/util/show_dialog.dart';
 import 'package:anime_gallery/widgets/general_category.dart';
 import 'package:anime_gallery/widgets/media_card.dart';
@@ -40,6 +42,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
   bool _isTitleUpdated = false;
   bool _isClearButtonVisible = false;
   bool _isRankShowingAnime = true;
+  bool _listenerAttached = true;
   List<MediaNodeRanked> _rankingNodes = [];
   List<MediaNodeRanked> _rankingNodesManga = [];
   List<MediaNodeRanked> _intermediateRankingNodes = [];
@@ -51,8 +54,12 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
   late final TextEditingController _textEditingController;
   late final FocusNode _focusNode;
   late final ScrollController _scrollController;
+  RefreshContentUtil? _autoRefresh;
+  Data _searchData = Data.empty();
   Data _suggestionsData = Data.empty();
   Data _onGoingData = Data.empty();
+  DataWithRank _rankAnimeData = DataWithRank.empty();
+  DataWithRank _rankMangaData = DataWithRank.empty();
 
   List<dynamic> categoryNodes(int index) {
     switch(index) {
@@ -166,6 +173,9 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
         _rankingNodes = nodes;
       });
     },
+      dataCallback: (data) {
+        _rankAnimeData = data;
+      },
       queryParam: _categories()[0].queryParams,
       needRank: true,
     );
@@ -175,9 +185,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
       });
     },
     dataCallback: (data) {
-      setState(() {
-        _suggestionsData = data;
-      });
+      _suggestionsData = data;
     },
       queryParam: _categories()[1].queryParams
     );
@@ -187,9 +195,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
       });
     },
     dataCallback: (data) {
-      setState(() {
-        _onGoingData = data;
-      });
+      _onGoingData = data;
     },
       queryParam: _categories()[2].queryParams
     );
@@ -201,8 +207,11 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
         _rankingNodesManga = nodes;
       });
     },
-      queryParam: _categories()[0].queryParams,
-      needRank: true,
+    dataCallback: (data) {
+      _rankMangaData = data;
+    },
+    queryParam: _categories()[0].queryParams,
+    needRank: true,
     );
   }
 
@@ -232,6 +241,21 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
           _isTitleUpdated = false;
         });
       },
+      dataCallback: (data) {
+        setState(() {
+          _searchData = data;
+          _listenerAttached = true;
+        });
+        _autoRefresh = RefreshContentUtil(
+            scrollController: _scrollController,
+            onRefreshed: (newNodes) {
+              setState(() {
+                _nodes.addAll(newNodes as List<MediaNode>);
+              });
+            },
+            data: _searchData
+        );
+      },
       queryParam: {
         "q" : _title,
         "limit" : 100,
@@ -247,10 +271,23 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
     });
   }
 
+  void _scrollListener() {
+    if (!_isShowingMediaList) {
+      if (_listenerAttached) {
+        setState(() {
+          _listenerAttached = false;
+          _autoRefresh?.detachListener();
+          _autoRefresh = null;
+        });
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController();
+    _scrollController = ScrollController()
+      ..addListener(_scrollListener);
     _textEditingController = TextEditingController();
     _focusNode = FocusNode();
     _history = History();
@@ -390,41 +427,40 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
                 ),
               ),
               !_isSearchBarOnFocus ? SliverList(
-                delegate: SliverChildListDelegate(
-                    [
-                      RankCategory(
-                          nodes: _intermediateRankingNodes,
-                          isAnime: _isRankShowingAnime,
-                          mediaCategory: _categories()[0],
-                          gradientColors: _categories()[0].gradients,
-                          onToggle: (int index) {
-                            if (index == 0) {
-                              setState(() {
-                                _intermediateRankingNodes = _rankingNodes;
-                                _isRankShowingAnime = true;
-                              });
-                            } else {
-                              setState(() {
-                                _intermediateRankingNodes = _rankingNodesManga;
-                                _isRankShowingAnime = false;
-                              });
-                            }
-                          }
-                      ),
-                      GeneralCategory(
-                        nodes: _suggestionsNodes,
-                        mediaCategory: _categories()[1],
-                        gradientColors: _categories()[1].gradients,
-                        data: _suggestionsData,
-                      ),
-                      GeneralCategory(
-                        nodes: _seasonalNodes,
-                        mediaCategory: _categories()[2],
-                        gradientColors: _categories()[2].gradients,
-                        data: _onGoingData,
-                      ),
-                    ]
-                ),
+                delegate: SliverChildListDelegate([
+                    RankCategory(
+                      nodes: _intermediateRankingNodes,
+                      isAnime: _isRankShowingAnime,
+                      mediaCategory: _categories()[0],
+                      gradientColors: _categories()[0].gradients,
+                      initialData: _isRankShowingAnime ? _rankAnimeData : _rankMangaData,
+                      onToggle: (int index) {
+                        if (index == 0) {
+                          setState(() {
+                            _intermediateRankingNodes = _rankingNodes;
+                            _isRankShowingAnime = true;
+                          });
+                        } else {
+                          setState(() {
+                            _intermediateRankingNodes = _rankingNodesManga;
+                            _isRankShowingAnime = false;
+                          });
+                        }
+                      }
+                    ),
+                    GeneralCategory(
+                      nodes: _suggestionsNodes,
+                      mediaCategory: _categories()[1],
+                      gradientColors: _categories()[1].gradients,
+                      data: _suggestionsData,
+                    ),
+                    GeneralCategory(
+                      nodes: _seasonalNodes,
+                      mediaCategory: _categories()[2],
+                      gradientColors: _categories()[2].gradients,
+                      data: _onGoingData,
+                    ),
+                  ]),
               ) : !_isShowingMediaList ? SliverToBoxAdapter(
                 child:  SearchHistory(
                   searchesHistory: _searchesHistory,
@@ -449,7 +485,12 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
                   onDelete: _deleteHistory,
                   onDeleteAll: () => _deleteAllHistory(context),
                 )
-              ) : _nodes.isNotEmpty && !_isTitleUpdated ? MMediaList(nodes: _nodes, isAnime: true,)
+              ) : _nodes.isNotEmpty && !_isTitleUpdated ? MMediaList(
+                nodes: _nodes,
+                isAnime: true,
+                scrollController: _scrollController,
+                autoRefresh: _autoRefresh
+              )
               : SliverToBoxAdapter(
                 child: SizedBox(
                   height: MediaQuery.of(context).size.height - (kToolbarHeight + 46),

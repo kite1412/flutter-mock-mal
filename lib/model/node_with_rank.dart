@@ -14,6 +14,10 @@ class MediaNodeRanked {
     return MediaNode.from(nodeWithRanking.node);
   }
 
+  factory MediaNodeRanked.empty() {
+    return MediaNodeRanked(MediaNode.empty(), Ranking(-1));
+  }
+
   // Required factor constructor for deserialization
   factory MediaNodeRanked.fromJson(Map<String, dynamic> json) => _$MediaNodeRankedFromJson(json);
 

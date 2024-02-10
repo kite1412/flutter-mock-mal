@@ -3,7 +3,7 @@ import 'package:anime_gallery/model/alternative_titles.dart';
 import 'package:anime_gallery/model/update_media.dart';
 import 'package:anime_gallery/model/user_media_status.dart';
 import 'package:anime_gallery/notifier/removable_list_notifier.dart';
-import 'package:anime_gallery/notifier/update_media_notifier.dart';
+import 'package:anime_gallery/notifier/global_notifier.dart';
 import 'package:anime_gallery/util/global_constant.dart';
 import 'package:anime_gallery/widgets/edit_media_page.dart';
 import 'package:anime_gallery/widgets/swipeable_image.dart';
@@ -58,6 +58,7 @@ class _MediaDetailState extends State<MediaDetail> {
     if (mediaStatus != null) {
       switch(mediaStatus.status) {
         case "watching":
+        case "reading":
           setState(() {
             _fabColor = const Color.fromARGB(255, 70, 180, 90);
           });
@@ -78,6 +79,7 @@ class _MediaDetailState extends State<MediaDetail> {
           });
           break;
         case "plan_to_watch":
+        case "plan_to_read":
           setState(() {
             _fabColor = Colors.grey.shade500;
           });
@@ -226,16 +228,23 @@ class _MediaDetailState extends State<MediaDetail> {
         _media.id,
         widget.isAnime,
         (MediaNode node) {
-          Provider.of<GlobalNotifier>(context, listen: false).statusNeedUpdate = node.userMediaStatus?.status ?? "*";
+          Provider.of<GlobalNotifier>(context, listen: false).statusNeedUpdate = node.userMediaStatus?.status ?? "";
           if (_calledFromPage.isEmpty) {
             Provider.of<GlobalNotifier>(context, listen: false).statusBeforeUpdate = _media.userMediaStatus?.status ?? "*";
           }
           _decideFabColor(node.userMediaStatus);
-          if (_media.userMediaStatus?.status != node.userMediaStatus?.status) {
-            if (_calledFromPage != "*") {
-              setState(() {
-                _enableDismissal = true;
-              });
+          if (node.userMediaStatus == null) {
+            setState(() {
+              _enableDismissal = true;
+            });
+            Provider.of<RemovableListNotifier>(context, listen: false).deleteInAllPage = true;
+          } else {
+            if (_media.userMediaStatus?.status != node.userMediaStatus?.status) {
+              if (_calledFromPage != "*") {
+                setState(() {
+                  _enableDismissal = true;
+                });
+              }
             }
           }
           setState(() {

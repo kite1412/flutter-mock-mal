@@ -1,4 +1,5 @@
-import 'package:anime_gallery/notifier/update_media_notifier.dart';
+import 'package:animated_list_plus/animated_list_plus.dart';
+import 'package:anime_gallery/notifier/global_notifier.dart';
 import 'package:anime_gallery/util/mock_media.dart';
 import 'package:anime_gallery/widgets/media_card.dart';
 import 'package:flutter/cupertino.dart';
@@ -20,7 +21,7 @@ class RemovableMediaList extends StatefulWidget {
     super.key,
     required this.nodes,
     required this.isAnime,
-    required this.status
+    required this.status,
   });
 
 
@@ -30,17 +31,18 @@ class RemovableMediaList extends StatefulWidget {
 
 class _RemovableMediaListState extends State<RemovableMediaList> {
   final Logger _log = Logger();
-  final GlobalKey<AnimatedListState> _key = GlobalKey();
+  final _key = GlobalKey<AnimatedListState>();
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final currentIndex = Provider.of<RemovableListNotifier>(context, listen: false).currentIndex;
     final needToRemove = Provider.of<RemovableListNotifier>(context).removeCurrentItem;
-    if (currentIndex != -1 && needToRemove && widget.status.jsonName.isNotEmpty) {
+    final deleteInAllPage = Provider.of<RemovableListNotifier>(context, listen: false).deleteInAllPage;
+    if (currentIndex != -1 && needToRemove && (widget.status.jsonName.isNotEmpty || deleteInAllPage)) {
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
         widget.nodes.removeAt(currentIndex);
-        _key.currentState?.removeItem(currentIndex, (context, animation) {
+        _key.currentState!.removeItem(currentIndex, (context, animation) {
           return SizeTransition(
             sizeFactor: animation,
             child: FadeTransition(
@@ -56,13 +58,13 @@ class _RemovableMediaListState extends State<RemovableMediaList> {
         );
         Provider.of<RemovableListNotifier>(context, listen: false).removeCurrentItem = false;
         Provider.of<RemovableListNotifier>(context, listen: false).currentIndex = -1;
+        Provider.of<RemovableListNotifier>(context, listen: false).deleteInAllPage = false;
       });
     } else {
       if (widget.status.jsonName.isEmpty) {
         WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
           if (mounted) {
             Provider.of<RemovableListNotifier>(context, listen: false).removeCurrentItem = false;
-            Provider.of<RemovableListNotifier>(context, listen: false).currentIndex = -1;
           }
         });
       }

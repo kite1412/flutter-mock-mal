@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:anime_gallery/model/node_with_rank.dart';
-import 'package:anime_gallery/notifier/update_media_notifier.dart';
+import 'package:anime_gallery/notifier/global_notifier.dart';
 import 'package:anime_gallery/other/media_category.dart';
 import 'package:anime_gallery/widgets/category_page.dart';
 import 'package:anime_gallery/widgets/media_ranked_display.dart';
@@ -12,12 +12,15 @@ import 'package:provider/provider.dart';
 import 'package:toggle_switch/toggle_switch.dart';
 import 'package:uuid/uuid.dart';
 
+import '../model/data_with_node_ranked.dart';
+
 class RankCategory extends StatefulWidget {
   List<MediaNodeRanked> nodes;
   final bool isAnime;
   final MediaCategory mediaCategory;
   final List<Color> gradientColors;
   final void Function(int) onToggle;
+  final DataWithRank initialData;
 
   RankCategory({
     super.key,
@@ -25,7 +28,8 @@ class RankCategory extends StatefulWidget {
     required this.isAnime,
     required this.mediaCategory,
     required this.gradientColors,
-    required this.onToggle
+    required this.onToggle,
+    required this.initialData
   });
 
   @override
@@ -91,10 +95,11 @@ class _RankCategoryState extends State<RankCategory> {
                         builder: (context) {
                           return RankedCategoryPage(
                             category: "Rank",
-                            nodes: widget.nodes,
+                            nodes: [...widget.nodes],
                             isAnime: widget.isAnime,
                             heroTag: _heroTag,
                             gradientColors: widget.gradientColors,
+                            referenceData: widget.initialData,
                           );
                         }
                       )

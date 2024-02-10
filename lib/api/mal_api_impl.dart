@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:anime_gallery/api/mal_api.dart';
 import 'package:anime_gallery/model/data.dart';
 import 'package:anime_gallery/model/media_node.dart';
+import 'package:anime_gallery/model/node_with_rank.dart';
 import 'package:anime_gallery/model/update_media.dart';
 import 'package:anime_gallery/util/global_constant.dart';
 import 'package:http/http.dart';
@@ -261,5 +262,30 @@ class MalAPIImpl implements MalAPI {
       _log.w("token is null");
       return false;
     }
+  );
+
+  @override
+  Future<DataWithRank> rankedNextPage(String nextPage) => _getTokenAndPerformRequest<DataWithRank>(
+      tokenCallback: (token) async {
+        try {
+          if (nextPage.isNotEmpty) {
+            final Response response = await get(Uri.parse(nextPage), headers: _authHeader(token));
+            final Map<String, dynamic> json = jsonDecode(response.body);
+            final DataWithRank data = DataWithRank.fromJson(json);
+            _log.i("next page has been loaded");
+            return data;
+          } else {
+            _log.w("next page is not exist");
+            return DataWithRank.empty();
+          }
+        } catch (e) {
+          _log.e(e);
+          return DataWithRank.empty();
+        }
+      },
+      onTokenNull: () {
+        _log.w("access token is null");
+        return Future.value(DataWithRank.empty());
+      }
   );
 }

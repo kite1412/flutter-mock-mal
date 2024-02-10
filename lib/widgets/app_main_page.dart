@@ -10,7 +10,7 @@ import 'package:flutter/rendering.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 
-import '../notifier/update_media_notifier.dart';
+import '../notifier/global_notifier.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key, required this.info});

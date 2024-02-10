@@ -8,8 +8,8 @@ import '../model/data.dart';
 class RefreshContentUtil with ChangeNotifier {
   final Logger _log = Logger();
   final ScrollController scrollController;
-  final void Function(List<MediaNode>) onRefreshed;
-  Data data;
+  final void Function(List<dynamic>) onRefreshed;
+  dynamic data;
 
   // to prevent indefinite request.
   bool _ableToRefresh = true;
@@ -23,14 +23,24 @@ class RefreshContentUtil with ChangeNotifier {
   RefreshContentUtil({
     required this.scrollController,
     required this.onRefreshed,
-    required this.data
+    required this.data,
   }) {
+    attachListener();
+  }
+
+
+
+  void attachListener() {
     scrollController.addListener(_autoRefreshListener);
+  }
+
+  void detachListener() {
+    scrollController.removeListener(_autoRefreshListener);
   }
 
   void _fetchMedia() {
     MalAPIHelper.prevNextPage(
-      data.paging.next!,
+      data.paging.next ?? "",
       (nodes) {
         onRefreshed(nodes);
       },
@@ -58,5 +68,34 @@ class RefreshContentUtil with ChangeNotifier {
         });
       }
     }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    scrollController.removeListener(_autoRefreshListener);
+  }
+}
+
+class RefreshRankedContentUtil extends RefreshContentUtil {
+  RefreshRankedContentUtil({
+    required super.scrollController,
+    required super.onRefreshed,
+    required super.data
+  });
+
+  @override
+  void _fetchMedia() {
+    MalAPIHelper.rankedNextPage(
+      data.paging.next ?? "",
+      dataCallback: (newData) {
+        if (newData.paging.next != null) {
+          data = newData;
+        } else {
+          _isRefreshCompleteSetter(true);
+        }
+      },
+      nodesCallback: onRefreshed
+    );
   }
 }

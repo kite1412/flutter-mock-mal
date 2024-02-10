@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../api/api_helper.dart';
 import '../model/media_node.dart';
-import '../notifier/update_media_notifier.dart';
+import '../notifier/global_notifier.dart';
 import '../util/global_constant.dart';
 import 'media_detail.dart';
 

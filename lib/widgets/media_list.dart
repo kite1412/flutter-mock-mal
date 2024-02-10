@@ -5,7 +5,8 @@ import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 
 import '../model/media_node.dart';
-import '../notifier/update_media_notifier.dart';
+import '../notifier/global_notifier.dart';
+import '../util/refresh_content_util.dart';
 
 class MMediaList extends StatefulWidget {
   List<MediaNode> nodes;
@@ -13,6 +14,7 @@ class MMediaList extends StatefulWidget {
   final bool? isSliver;
   ScrollController? scrollController;
   void Function(List<MediaNode>)? newNodes;
+  RefreshContentUtil? autoRefresh;
 
   MMediaList({
     super.key,
@@ -20,7 +22,8 @@ class MMediaList extends StatefulWidget {
     required this.isAnime,
     this.isSliver,
     this.scrollController,
-    this.newNodes
+    this.newNodes,
+    this.autoRefresh
   });
 
   @override

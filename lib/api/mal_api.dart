@@ -1,5 +1,8 @@
+import 'package:anime_gallery/model/data_with_node_ranked.dart';
+
 import '../model/data.dart';
 import '../model/media_node.dart';
+import '../model/node_with_rank.dart';
 import '../model/update_media.dart';
 import '../model/user_information.dart';
 
@@ -19,4 +22,6 @@ abstract class MalAPI {
   Future<UpdateMedia> updateMedia(int mediaId, bool isAnime, Map<String, dynamic> body);
 
   Future<bool> removeMedia(int mediaId, bool isAnime);
+
+  Future<DataWithRank> rankedNextPage(String nextPage);
 }
