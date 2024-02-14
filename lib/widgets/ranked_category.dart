@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import 'package:anime_gallery/model/node_with_rank.dart';
+import 'package:anime_gallery/model/mal/node_with_rank.dart';
 import 'package:anime_gallery/notifier/global_notifier.dart';
 import 'package:anime_gallery/other/media_category.dart';
 import 'package:anime_gallery/widgets/category_page.dart';
@@ -12,7 +12,7 @@ import 'package:provider/provider.dart';
 import 'package:toggle_switch/toggle_switch.dart';
 import 'package:uuid/uuid.dart';
 
-import '../model/data_with_node_ranked.dart';
+import '../model/mal/data_with_node_ranked.dart';
 
 class RankCategory extends StatefulWidget {
   List<MediaNodeRanked> nodes;

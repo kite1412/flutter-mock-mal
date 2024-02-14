@@ -1,6 +1,5 @@
-import 'package:anime_gallery/model/media_picture.dart';
-
-import '../model/media_node.dart';
+import '../model/mal/media_node.dart';
+import '../model/mal/media_picture.dart';
 
 class MockMedia {
   static List<MediaNode> mockAnime = [

@@ -1,18 +1,19 @@
 import 'dart:convert';
+import 'dart:ui';
 
-import 'package:anime_gallery/api/mal_api.dart';
-import 'package:anime_gallery/model/data.dart';
-import 'package:anime_gallery/model/media_node.dart';
-import 'package:anime_gallery/model/node_with_rank.dart';
-import 'package:anime_gallery/model/update_media.dart';
+import 'package:anime_gallery/api/mal/mal_api.dart';
+import 'package:anime_gallery/model/mal/media_node.dart';
+import 'package:anime_gallery/model/mal/node_with_rank.dart';
 import 'package:anime_gallery/util/global_constant.dart';
 import 'package:http/http.dart';
-import 'package:anime_gallery/api/constant.dart';
+import 'package:anime_gallery/api/mal/constant.dart';
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../model/data_with_node_ranked.dart';
-import '../model/user_information.dart';
+import '../../model/mal/data.dart';
+import '../../model/mal/data_with_node_ranked.dart';
+import '../../model/mal/update_media.dart';
+import '../../model/mal/user_information.dart';
 
 typedef GenericCallback<T> = T Function();
 typedef AccessTokenCallback<T> = T Function(String);
@@ -26,11 +27,14 @@ class MalAPIImpl implements MalAPI {
   }
 
   Future<T> _getTokenAndPerformRequest<T>(
-    {required AccessTokenCallback<Future<T>> tokenCallback,
-     required GenericCallback<Future<T>> onTokenNull}
-  ) async {
-    final SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
-    final accessToken = sharedPreferences.get(GlobalConstant.spAccessToken) as String?;
+      {required AccessTokenCallback<Future<T>> tokenCallback,
+        required GenericCallback<Future<T>> onTokenNull}
+      ) async {
+    final SharedPreferences sharedPreferences = await SharedPreferences
+        .getInstance();
+    final accessToken = sharedPreferences.get(
+        GlobalConstant.spAccessToken) as String?;
+    // _log.w("token: $accessToken");
     return accessToken != null ? await tokenCallback(accessToken) : await onTokenNull();
   }
 
@@ -38,7 +42,8 @@ class MalAPIImpl implements MalAPI {
   Future<dynamic> fetchMedia(
     String path,
     Map<String, dynamic> queries,
-    {bool needRank = false}
+    {bool needRank = false,
+    VoidCallback? onFailure}
   ) async => await _getTokenAndPerformRequest<dynamic>(
     tokenCallback: (token) async {
       String fullPath = "";
@@ -71,6 +76,7 @@ class MalAPIImpl implements MalAPI {
         return data;
       } catch (e) {
         _log.w("fail to fetch media with path: $fullPath");
+        onFailure?.call();
         if (!needRank) {
           return Data.empty();
         } else {

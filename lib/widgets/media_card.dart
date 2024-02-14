@@ -1,5 +1,5 @@
-import 'package:anime_gallery/api/api_helper.dart';
-import 'package:anime_gallery/model/update_media.dart';
+import 'package:anime_gallery/api/mal/api_helper.dart';
+import 'package:anime_gallery/model/mal/update_media.dart';
 import 'package:anime_gallery/notifier/removable_list_notifier.dart';
 import 'package:anime_gallery/notifier/global_notifier.dart';
 import 'package:anime_gallery/util/global_constant.dart';
@@ -9,7 +9,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
-import '../model/media_node.dart';
+import '../model/mal/media_node.dart';
 import '../other/update_type.dart';
 import '../util/info_bar.dart';
 
@@ -46,6 +46,7 @@ class _MediaListState extends State<MediaList> {
       queryParam: {
         "q" : "High school",
         "limit" : 70,
+        "nsfw" : true,
         "fields" : widget.isAnime ? GlobalConstant.mandatoryFields : GlobalConstant.mangaMandatoryFields
       },
       dataCallback: (data) {

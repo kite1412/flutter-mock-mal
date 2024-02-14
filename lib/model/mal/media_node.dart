@@ -1,6 +1,6 @@
-import 'package:anime_gallery/model/start_season.dart';
-import 'package:anime_gallery/model/studio.dart';
-import 'package:anime_gallery/model/user_media_status.dart';
+import 'package:anime_gallery/model/mal/start_season.dart';
+import 'package:anime_gallery/model/mal/studio.dart';
+import 'package:anime_gallery/model/mal/user_media_status.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 import 'alternative_titles.dart';

@@ -7,7 +7,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 
-import '../model/media_node.dart';
+import '../model/mal/media_node.dart';
 import '../notifier/removable_list_notifier.dart';
 import '../other/media_status.dart';
 

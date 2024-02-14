@@ -4,7 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 
-import '../model/media_node.dart';
+import '../model/mal/media_node.dart';
 import '../notifier/global_notifier.dart';
 import '../util/refresh_content_util.dart';
 

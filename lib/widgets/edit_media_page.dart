@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:anime_gallery/api/api_helper.dart';
-import 'package:anime_gallery/model/media_node.dart';
-import 'package:anime_gallery/model/user_media_status.dart';
+import 'package:anime_gallery/api/mal/api_helper.dart';
+import 'package:anime_gallery/model/mal/media_node.dart';
+import 'package:anime_gallery/model/mal/user_media_status.dart';
 import 'package:anime_gallery/notifier/global_notifier.dart';
 import 'package:anime_gallery/util/show_dialog.dart';
 import 'package:flutter/cupertino.dart';
@@ -50,75 +50,86 @@ class _EditMediaPageState extends State<EditMediaPage> {
     return _isStatusChanged || _isScoreChanged || _isProgressChanged;
   }
 
-  void _onSelectedStatus(MediaStatus s) {
+  void _onSelectedStatus(BuildContext context, MediaStatus s) {
     if (widget.media.userMediaStatus != null) {
       if (widget.media.userMediaStatus!.status != null) {
         setState(() {
-          _validateStatus(s);
+          _changeProgressBasedOnStatus(context, s);
         });
+        if (widget.media.userMediaStatus!.status != _updatedStatus) {
+          _isStatusChanged = true;
+        } else {
+          _isStatusChanged = false;
+        }
       }
     } else {
       setState(() {
         _isStatusChanged = true;
-        if (widget.isAnime) {
-          if (widget.media.numEpisodes! == _updatedProgress) {
-            _updatedStatus = "completed";
-          } else {
-            _updatedStatus = s.jsonName;
-          }
-        } else {
-          if (widget.media.numChapters! == _updatedProgress) {
-            _updatedStatus = "completed";
-          } else {
-            _updatedStatus = s.jsonName;
-          }
-        }
       });
+      _changeProgressBasedOnStatus(context, s);
     }
-    _log.i("updated status: $_updatedStatus");
   }
 
-  void _validateStatus(MediaStatus s) {
-    //make sure to make the status complete if updated progress is same as media's total episodes
+  void _changeProgressBasedOnStatus(BuildContext context, MediaStatus s) {
     if (widget.isAnime) {
-      if (widget.media.numEpisodes! == _updatedProgress) {
-        _updatedStatus = "completed";
-      } else {
-        _updatedStatus = s.jsonName;
-      }
-    } else {
-      if (widget.media.numChapters! == _updatedProgress) {
-        _updatedStatus = "completed";
-      } else {
-        _updatedStatus = s.jsonName;
-      }
-    }
-    //user status with selected status
-    if (widget.media.userMediaStatus!.status != _updatedStatus) {
-      _isStatusChanged = true;
-    } else {
-      _isStatusChanged = false;
-    }
-  }
-
-  void _changeProgressOnCompleted(BuildContext context) {
-    if (_updatedStatus == "completed") {
-      if (widget.isAnime) {
+      // for predefined total episodes AND if the user choose the 'completed' status
+      if (widget.media.numEpisodes != 0 && s.jsonName == "completed") {
         Provider.of<GlobalNotifier>(context, listen: false).selectedIndex = widget.media.numEpisodes!.toDouble();
         Provider.of<GlobalNotifier>(context, listen: false).status = 1;
         setState(() {
           _updatedProgress = Provider.of<GlobalNotifier>(context, listen: false).selectedIndex.toInt();
         });
       } else {
+        // user choose 'completed' status, but total episodes is unknown,
+        if (s.jsonName == "completed" && widget.media.numEpisodes == 0) {
+          Provider.of<GlobalNotifier>(context, listen: false).status = 0;
+          setState(() {
+            _updatedStatus = "watching";
+          });
+        } else {
+          if (_updatedProgress == widget.media.numEpisodes && widget.media.numEpisodes != 0) {
+            Provider.of<GlobalNotifier>(context, listen: false).status = 1;
+            setState(() {
+              _updatedStatus = "completed";
+            });
+          } else {
+            Provider.of<GlobalNotifier>(context, listen: false).status = s.index;
+            setState(() {
+              _updatedStatus = s.jsonName;
+            });
+          }
+        }
+      }
+    } else {
+      if (widget.media.numChapters != 0 && s.jsonName == "completed") {
         Provider.of<GlobalNotifier>(context, listen: false).selectedIndex = widget.media.numChapters!.toDouble();
         Provider.of<GlobalNotifier>(context, listen: false).status = 1;
         setState(() {
           _updatedProgress = Provider.of<GlobalNotifier>(context, listen: false).selectedIndex.toInt();
         });
+      } else {
+        // user choose 'completed' status, but total episodes is unknown,
+        if (s.jsonName == "completed" && widget.media.numChapters == 0) {
+          Provider.of<GlobalNotifier>(context, listen: false).status = 0;
+          setState(() {
+            _updatedStatus = "reading";
+          });
+        } else {
+          if (_updatedProgress == widget.media.numChapters && widget.media.numChapters != 0) {
+            Provider.of<GlobalNotifier>(context, listen: false).status = 1;
+            setState(() {
+              _updatedStatus = "completed";
+            });
+          } else {
+            Provider.of<GlobalNotifier>(context, listen: false).status = s.index;
+            setState(() {
+              _updatedStatus = s.jsonName;
+            });
+          }
+        }
       }
     }
-    _log.i("progress updated to completed: $_updatedProgress");
-    _log.i("status updated to completed: $_updatedStatus");
+    _log.i("status changed to: $_updatedStatus");
   }
 
   void _showAlertDialog(BuildContext context) {
@@ -198,10 +209,12 @@ class _EditMediaPageState extends State<EditMediaPage> {
           });
         }
       } else {
-        Provider.of<GlobalNotifier>(context, listen: false).status = 1;
-        setState(() {
-          _updatedStatus = "completed";
-        });
+        if (widget.media.numEpisodes != 0) {
+          Provider.of<GlobalNotifier>(context, listen: false).status = 1;
+          setState(() {
+            _updatedStatus = "completed";
+          });
+        }
       }
     } else {
       if (_updatedProgress != widget.media.numChapters) {
@@ -212,10 +225,12 @@ class _EditMediaPageState extends State<EditMediaPage> {
           });
         }
       } else {
-        Provider.of<GlobalNotifier>(context, listen: false).status = 1;
-        setState(() {
-          _updatedStatus = "completed";
-        });
+        if (widget.media.numChapters != 0) {
+          Provider.of<GlobalNotifier>(context, listen: false).status = 1;
+          setState(() {
+            _updatedStatus = "completed";
+          });
+        }
       }
     }
     if (widget.media.userMediaStatus != null) {
@@ -379,8 +394,7 @@ class _EditMediaPageState extends State<EditMediaPage> {
                           status: MediaStatus.status(widget.isAnime),
                           userMediaStatus: widget.media.userMediaStatus,
                           onSelectedStatus: (s) {
-                            _onSelectedStatus(s);
-                            _changeProgressOnCompleted(context);
+                            _onSelectedStatus(context, s);
                           },
                         ),
                       ],

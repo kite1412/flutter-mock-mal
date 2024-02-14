@@ -1,7 +1,7 @@
 
 import 'package:flutter/material.dart';
 
-import '../model/media_node.dart';
+import '../model/mal/media_node.dart';
 
 class InfoBar {
 
@@ -32,6 +32,8 @@ class InfoBar {
       case "not_yet_published":
         end = "Not yet aired";
         break;
+      case "on_hiatus":
+        end = "Hiatus";
       default:
         end = "No status";
     }
@@ -81,7 +83,7 @@ class InfoBar {
   }
 
   static Color _statusColor(String status) {
-    Color color = Colors.transparent;
+    Color color = Colors.grey.shade700;
     switch(status) {
       case "finished_airing":
       case "finished":

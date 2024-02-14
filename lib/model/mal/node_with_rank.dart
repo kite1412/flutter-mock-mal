@@ -1,4 +1,4 @@
-import 'package:anime_gallery/model/media_node.dart';
+import 'package:anime_gallery/model/mal/media_node.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'node_with_rank.g.dart';

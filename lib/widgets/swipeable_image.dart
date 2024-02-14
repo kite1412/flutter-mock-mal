@@ -1,7 +1,8 @@
-import 'package:anime_gallery/model/media_picture.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
+
+import '../model/mal/media_picture.dart';
 
 
 class SwipeableImage extends StatefulWidget {
@@ -21,6 +22,7 @@ class SwipeableImage extends StatefulWidget {
 class _SwipeableImageState extends State<SwipeableImage> {
   final Logger _log = Logger();
   int _selectedIndex = 0;
+  late final PageController _pageController;
 
   List<Widget> _pictureIndicators() {
     List<Widget> indicators = [];
@@ -64,6 +66,17 @@ class _SwipeableImageState extends State<SwipeableImage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      setState(() {
+        _selectedIndex = _pageController.page!.toInt();
+      });
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
@@ -71,6 +84,7 @@ class _SwipeableImageState extends State<SwipeableImage> {
           width: widget.width,
           height: widget.width * 1.5,
           child: PageView(
+            controller: _pageController,
             onPageChanged: (index) {
               setState(() {
                 _selectedIndex = index;
@@ -98,7 +112,11 @@ class _PointIndicator extends StatefulWidget {
   final int index;
   final int selectedIndex;
 
-  const _PointIndicator({required this.index, required this.selectedIndex});
+  const _PointIndicator({
+    super.key,
+    required this.index,
+    required this.selectedIndex
+  });
 
   @override
   State<_PointIndicator> createState() => _PointIndicatorState();

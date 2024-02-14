@@ -2,8 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 
-import '../api/api_helper.dart';
-import '../model/media_node.dart';
+import '../api/mal/api_helper.dart';
+import '../model/mal/media_node.dart';
 import '../util/global_constant.dart';
 import 'media_card.dart';
 

@@ -10,8 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:uuid/uuid.dart';
 
-import '../model/data.dart';
-import '../model/media_node.dart';
+import '../model/mal/data.dart';
+import '../model/mal/media_node.dart';
 import 'media_detail.dart';
 
 // Categories that share similarities, such as using MediaNode,

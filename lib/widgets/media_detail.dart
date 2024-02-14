@@ -1,20 +1,24 @@
-import 'package:anime_gallery/api/api_helper.dart';
-import 'package:anime_gallery/model/alternative_titles.dart';
-import 'package:anime_gallery/model/update_media.dart';
-import 'package:anime_gallery/model/user_media_status.dart';
+import 'package:anime_gallery/api/jikan/api_helper.dart';
+import 'package:anime_gallery/api/mal/api_helper.dart';
+import 'package:anime_gallery/model/mal/alternative_titles.dart';
+import 'package:anime_gallery/model/mal/user_media_status.dart';
 import 'package:anime_gallery/notifier/removable_list_notifier.dart';
 import 'package:anime_gallery/notifier/global_notifier.dart';
 import 'package:anime_gallery/util/global_constant.dart';
+import 'package:anime_gallery/widgets/character_page.dart';
 import 'package:anime_gallery/widgets/edit_media_page.dart';
 import 'package:anime_gallery/widgets/swipeable_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 import 'dart:ui' as ui;
-import '../model/media_node.dart';
-import '../model/media_picture.dart';
+import '../model/jikan/character.dart';
+import '../model/mal/media_node.dart';
+import '../model/mal/media_picture.dart';
 import '../util/info_bar.dart';
 
 class MediaDetail extends StatefulWidget {
@@ -43,6 +47,8 @@ class _MediaDetailState extends State<MediaDetail> {
   bool _isShowingFullSynopsis = false;
   bool _enableDismissal = false;
   String _calledFromPage = "*";
+  bool _isShowingCharacters = false;
+  List<Character>? _characters;
   final Logger _log = Logger();
   late final PageController _pageController;
 
@@ -158,6 +164,11 @@ class _MediaDetailState extends State<MediaDetail> {
       duration: const Duration(milliseconds: 300),
       curve: Curves.linear
     );
+    if (_isShowingCharacters) {
+      Future.delayed(const Duration(milliseconds: 300)).whenComplete(() => setState(() {
+        _isShowingCharacters = false;
+      }));
+    }
   }
 
   SnackBar _snackBar(String text) {
@@ -199,22 +210,22 @@ class _MediaDetailState extends State<MediaDetail> {
       _decideFabColor(widget.media.userMediaStatus!);
     }
     MalAPIHelper.fetchMediaById(
-      _media.id,
-      widget.isAnime,
-      (media) {
-        setState(() {
-          _media = media;
-        });
-        if (media.pictures != null) {
-          media.pictures!.removeWhere((picture) {
-            return _pictures[0].medium == picture.medium;
-          });
+        _media.id,
+        widget.isAnime,
+            (media) {
           setState(() {
-            _pictures = List.of(_pictures)..addAll(media.pictures!);
+            _media = media;
           });
-        }
-      },
-      fields: widget.isAnime ? GlobalConstant.mandatoryFields : GlobalConstant.mangaMandatoryFields
+          if (media.pictures != null) {
+            media.pictures!.removeWhere((picture) {
+              return _pictures[0].medium == picture.medium;
+            });
+            setState(() {
+              _pictures = List.of(_pictures)..addAll(media.pictures!);
+            });
+          }
+        },
+        fields: widget.isAnime ? GlobalConstant.mandatoryFields : GlobalConstant.mangaMandatoryFields
     );
   }
 
@@ -272,6 +283,7 @@ class _MediaDetailState extends State<MediaDetail> {
       physics: const NeverScrollableScrollPhysics(),
       children: [
         PopScope(
+          key: const PageStorageKey("saved"),
           onPopInvoked: (didPop) {
             _checkDismissal();
           },
@@ -293,9 +305,13 @@ class _MediaDetailState extends State<MediaDetail> {
                       icon: const Icon(Icons.arrow_back_rounded),
                     ),
                     title: Padding(
-                      padding: const EdgeInsets.only(top: 8, right: 48, bottom: 8),
+                      padding: const EdgeInsets.only(top: 8, bottom: 8, right: 48),
                       child: Center(
-                        child: Image.asset("images/mal-logo-full.png", height: 120, width: 120,),
+                        child: SvgPicture.asset(
+                          "images/mock-mal-logo.svg",
+                          height: 120,
+                          width: 120,
+                        ),
                       ),
                     ),
                   ),
@@ -379,8 +395,9 @@ class _MediaDetailState extends State<MediaDetail> {
                                 Hero(
                                   tag: widget.heroTag,
                                   child: SwipeableImage(
-                                      width: size,
-                                      pictures: _pictures
+                                    key: const PageStorageKey("s_images"),
+                                    width: size,
+                                    pictures: _pictures
                                   ),
                                 ),
                               ],
@@ -432,6 +449,27 @@ class _MediaDetailState extends State<MediaDetail> {
                               isAnime: widget.isAnime
                           ),
                         ),
+                        _Characters(
+                          key: const PageStorageKey("characters"),
+                          malMediaId: widget.media.id,
+                          isAnime: widget.isAnime,
+                          persist: (characters) => setState(() {
+                            _characters = characters;
+                          }),
+                          characters: _characters,
+                          onPressed: () {
+                            setState(() {
+                              _isShowingCharacters = true;
+                            });
+                            _pageController.nextPage(
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.linear
+                            );
+                          },
+                        ),
+                        const SizedBox(
+                          height: 100,
+                        )
                       ],
                     ),
                   )
@@ -450,7 +488,7 @@ class _MediaDetailState extends State<MediaDetail> {
             ),
           ),
         ),
-        EditMediaPage(
+        !_isShowingCharacters ? EditMediaPage(
           media: _media,
           isAnime: widget.isAnime,
           onPopInvoked: _onPopInvoked,
@@ -461,6 +499,10 @@ class _MediaDetailState extends State<MediaDetail> {
             ScaffoldMessenger.of(context).showSnackBar(_snackBar(isUpdated ? "Removed" : "Fail to remove"));
           },
           cardEnableUpdate: _calledFromPage == "*",
+        ) : PopScope(
+          canPop: false,
+          onPopInvoked: _onPopInvoked,
+          child: CharacterPage(characters: _characters!, onPop: () => _onPopInvoked(false),),
         ),
       ],
     );
@@ -701,6 +743,167 @@ class _MediaDetailsState extends State<_MediaDetails>{
           ),
         ],
       )
+    );
+  }
+}
+
+class _Characters extends StatefulWidget {
+  final int malMediaId;
+  final bool isAnime;
+  final void Function(List<Character>) persist;
+  final VoidCallback onPressed;
+  List<Character>? characters;
+
+  _Characters({
+    super.key,
+    required this.malMediaId,
+    required this.isAnime,
+    required this.persist,
+    required this.onPressed,
+    this.characters,
+  });
+
+  @override
+  State<_Characters> createState() => _CharactersState();
+}
+
+class _CharactersState extends State<_Characters> {
+  List<Character>? characters;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.characters != null) {
+      characters = widget.characters;
+    } else {
+      JikanApiHelper.getMediaCharacters(
+          widget.malMediaId,
+          widget.isAnime,
+              (characters) => setState(() {
+            this.characters = characters?.data ?? [];
+            widget.persist(this.characters!);
+          })
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return characters == null ?
+      Align(
+        alignment: Alignment.center,
+        child: SpinKitCircle(
+          color: MediaQuery.platformBrightnessOf(context) == Brightness.light ?
+            Colors.black : Colors.white,
+        ),
+      ) : characters!.isEmpty ? const SizedBox() : Container(
+      height: 248,
+      width: double.infinity,
+      padding: const EdgeInsets.only(left: 8),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Characters",
+                style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+              IconButton(
+                  onPressed: widget.onPressed,
+                  icon: const Icon(Icons.arrow_forward_rounded)
+              )
+            ],
+          ),
+          Expanded(
+            child: ListView.separated(
+              itemBuilder: (context, index) => index != 10 ? _CharacterTile(character: characters![index]) :
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 20, right: 20, left: 12),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                          decoration: BoxDecoration(
+                              border: Border.all(
+                                  color: MediaQuery.platformBrightnessOf(context) == Brightness.dark ?
+                                  Colors.grey.shade600 : Colors.grey
+                              ),
+                              borderRadius: BorderRadius.circular(100)
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(100),
+                            clipBehavior: Clip.antiAlias,
+                            child: InkResponse(
+                                onTap: widget.onPressed,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8),
+                                  child: Icon(
+                                    Icons.arrow_forward_rounded,
+                                    size: 40,
+                                    color: MediaQuery.platformBrightnessOf(context) == Brightness.dark ?
+                                      Colors.grey.shade500 : Colors.grey.shade700,
+                                  ),
+                                )
+                            ),
+                          )
+                      ),
+                      Text(
+                        "See More",
+                        style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                          color: Colors.grey.shade600
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+              separatorBuilder: (context, index) {
+                return const SizedBox(width: 8,);
+              },
+              itemCount: characters!.length <= 10 ? characters!.length : 11,
+              scrollDirection: Axis.horizontal
+            ),
+          )
+        ],
+      ),
+    );
+  }
+}
+
+class _CharacterTile extends StatelessWidget {
+  final Character character;
+
+  const _CharacterTile({
+    super.key,
+    required this.character
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 100,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Image.network(
+            character.character!.images!.jpg?.imageUrl ??
+                "https://t4.ftcdn.net/jpg/04/73/25/49/360_F_473254957_bxG9yf4ly7OBO5I0O5KABlN930GwaMQz.jpg",
+            height: 160,
+            width: 100,
+            fit: BoxFit.cover,
+          ),
+          Text(
+            character.character!.name!,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          )
+        ],
+      ),
     );
   }
 }

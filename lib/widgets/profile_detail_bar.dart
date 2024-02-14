@@ -1,6 +1,7 @@
-import 'package:anime_gallery/model/user_information.dart';
 import 'package:anime_gallery/widgets/profile_detail.dart';
 import 'package:flutter/material.dart';
+
+import '../model/mal/user_information.dart';
 
 class ProfileDetailBar extends StatefulWidget {
   const ProfileDetailBar({super.key, required this.emptySpaceTappedCallback, required this.userInfo});

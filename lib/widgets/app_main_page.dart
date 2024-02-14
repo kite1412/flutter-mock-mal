@@ -1,4 +1,4 @@
-import 'package:anime_gallery/model/user_information.dart';
+import 'package:anime_gallery/model/mal/user_information.dart';
 import 'package:anime_gallery/util/global_constant.dart';
 import 'package:anime_gallery/widgets/discovery_page.dart';
 import 'package:anime_gallery/widgets/media_card.dart';

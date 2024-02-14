@@ -2,8 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../api/api_helper.dart';
-import '../model/media_node.dart';
+import '../api/mal/api_helper.dart';
+import '../model/mal/media_node.dart';
 import '../notifier/global_notifier.dart';
 import '../util/global_constant.dart';
 import 'media_detail.dart';

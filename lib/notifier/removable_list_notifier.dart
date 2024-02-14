@@ -1,4 +1,4 @@
-import 'package:anime_gallery/model/media_node.dart';
+import 'package:anime_gallery/model/mal/media_node.dart';
 import 'package:flutter/cupertino.dart';
 
 class RemovableListNotifier extends ChangeNotifier {

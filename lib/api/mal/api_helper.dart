@@ -1,19 +1,17 @@
 import 'dart:convert';
+import 'dart:ui';
 
-import 'package:anime_gallery/api/constant.dart';
-import 'package:anime_gallery/api/mal_api_impl.dart';
-import 'package:anime_gallery/model/data_with_node_ranked.dart';
-import 'package:anime_gallery/model/node_with_rank.dart';
-import 'package:anime_gallery/model/update_media.dart';
-import 'package:anime_gallery/other/media_status.dart';
-import 'package:flutter/material.dart';
-import 'package:http/http.dart';
+import 'package:anime_gallery/api/mal/constant.dart';
+import 'package:anime_gallery/api/mal/mal_api_impl.dart';
+import 'package:anime_gallery/model/mal/data_with_node_ranked.dart';
+import 'package:anime_gallery/model/mal/node_with_rank.dart';
 import 'package:logger/logger.dart';
 
-import '../model/data.dart';
-import '../model/media_node.dart';
-import '../model/paging.dart';
-import '../model/user_information.dart';
+import '../../model/mal/data.dart';
+import '../../model/mal/media_node.dart';
+import '../../model/mal/paging.dart';
+import '../../model/mal/update_media.dart';
+import '../../model/mal/user_information.dart';
 import 'mal_api.dart';
 
 typedef ApiCallback<T> = void Function(T);
@@ -45,15 +43,18 @@ class MalAPIHelper {
     bool isFetchingAnime,
     ApiCallback<List<MediaNode>> callback,
     {ApiCallback<Data>? dataCallback,
-    Map<String, dynamic> queryParam = const {}}
+    Map<String, dynamic> queryParam = const {},
+    VoidCallback? beforeFetching,
+    VoidCallback? onFailure}
   ) async {
+    beforeFetching?.call();
     String path = isFetchingAnime ? "anime" : "manga";
     List<MediaNode> nodes;
 
     try {
-      final MalAPI api = MalAPIImpl();
+      final MalAPIImpl api = MalAPIImpl();
       nodes = [];
-      Data data = await api.fetchMedia(path, queryParam);
+      Data data = await api.fetchMedia(path, queryParam, onFailure: onFailure);
       if (dataCallback != null) {
         dataCallback(data);
       }

@@ -1,8 +1,8 @@
 import 'dart:ui';
 
-import 'package:anime_gallery/api/api_helper.dart';
-import 'package:anime_gallery/model/data_with_node_ranked.dart';
-import 'package:anime_gallery/model/node_with_rank.dart';
+import 'package:anime_gallery/api/mal/api_helper.dart';
+import 'package:anime_gallery/model/mal/data_with_node_ranked.dart';
+import 'package:anime_gallery/model/mal/node_with_rank.dart';
 import 'package:anime_gallery/notifier/global_notifier.dart';
 import 'package:anime_gallery/util/history.dart';
 import 'package:anime_gallery/util/refresh_content_util.dart';
@@ -10,6 +10,7 @@ import 'package:anime_gallery/util/show_dialog.dart';
 import 'package:anime_gallery/widgets/general_category.dart';
 import 'package:anime_gallery/widgets/media_card.dart';
 import 'package:anime_gallery/widgets/media_list.dart';
+import 'package:anime_gallery/widgets/media_toggle.dart';
 import 'package:anime_gallery/widgets/ranked_category.dart';
 import 'package:anime_gallery/widgets/search_bar.dart' as my;
 import 'package:anime_gallery/util/global_constant.dart';
@@ -17,15 +18,18 @@ import 'package:anime_gallery/widgets/search_history.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
-import '../model/data.dart';
-import '../model/media_node.dart';
+import '../model/mal/data.dart';
+import '../model/mal/media_node.dart';
 import '../other/media_category.dart';
 import 'category_bar.dart';
 import 'media_card_column.dart';
+
+final Logger _log = Logger();
 
 class DiscoveryPage extends StatefulWidget {
   const DiscoveryPage({super.key});
@@ -42,20 +46,25 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
   bool _isTitleUpdated = false;
   bool _isClearButtonVisible = false;
   bool _isRankShowingAnime = true;
-  bool _listenerAttached = true;
+  bool _fetchAnimeSuccess = false;
+  bool _fetchMangaSuccess = false;
+  bool _isAnime = true;
   List<MediaNodeRanked> _rankingNodes = [];
   List<MediaNodeRanked> _rankingNodesManga = [];
   List<MediaNodeRanked> _intermediateRankingNodes = [];
   List<MediaNode> _suggestionsNodes = [];
   List<MediaNode> _seasonalNodes = [];
   List<String> _searchesHistory = [];
-  List<MediaNode> _nodes = [];
+  List<MediaNode>? _animeNodes;
+  List<MediaNode>? _mangaNodes;
   late final History _history;
   late final TextEditingController _textEditingController;
   late final FocusNode _focusNode;
   late final ScrollController _scrollController;
-  RefreshContentUtil? _autoRefresh;
-  Data _searchData = Data.empty();
+  RefreshContentUtil? _animeAutoRefresh;
+  RefreshContentUtil? _mangaAutoRefresh;
+  Data _animeSearchData = Data.empty();
+  Data _mangaSearchData = Data.empty();
   Data _suggestionsData = Data.empty();
   Data _onGoingData = Data.empty();
   DataWithRank _rankAnimeData = DataWithRank.empty();
@@ -125,6 +134,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
       gradients: gradients,
       queryParams: {
         "limit" : 20,
+        "nsfw" : true,
         "fields" : GlobalConstant.mandatoryFields,
       }
     );
@@ -145,6 +155,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
       queryParams: {
         "ranking_type" : "all",
         "limit" : 20,
+        "nsfw" : true,
         "fields" : GlobalConstant.mandatoryFields,
       }
     ),
@@ -161,6 +172,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
       queryParams: {
         "limit" : 20,
         "fields" : GlobalConstant.mandatoryFields,
+        "nsfw" : true,
       }
     ),
     _seasonalCategory(),
@@ -237,30 +249,75 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
       true,
       (nodes) {
         setState(() {
-          _nodes = nodes;
+          _animeNodes = nodes;
           _isTitleUpdated = false;
         });
       },
       dataCallback: (data) {
         setState(() {
-          _searchData = data;
-          _listenerAttached = true;
+          _animeSearchData = data;
+          _fetchAnimeSuccess = true;
         });
-        _autoRefresh = RefreshContentUtil(
-            scrollController: _scrollController,
-            onRefreshed: (newNodes) {
-              setState(() {
-                _nodes.addAll(newNodes as List<MediaNode>);
-              });
-            },
-            data: _searchData
+        _animeAutoRefresh = RefreshContentUtil(
+          scrollController: _scrollController,
+          onRefreshed: (newNodes) {
+            setState(() {
+              _animeNodes!.addAll(newNodes as List<MediaNode>);
+            });
+          },
+          data: _animeSearchData,
+          enabled: _isAnime
         );
       },
+      beforeFetching: () => setState(() {
+        _animeNodes = null;
+      }),
+      onFailure: () => setState(() {
+        _fetchAnimeSuccess = false;
+      }),
       queryParam: {
         "q" : _title,
         "limit" : 100,
+        "nsfw" : true,
         "fields" : GlobalConstant.mandatoryFields
       }
+    );
+    MalAPIHelper.media(
+        false,
+        (nodes) {
+          setState(() {
+            _mangaNodes = nodes;
+            _isTitleUpdated = false;
+          });
+        },
+        dataCallback: (data) {
+          setState(() {
+            _mangaSearchData = data;
+            _fetchMangaSuccess = true;
+          });
+          _mangaAutoRefresh = RefreshContentUtil(
+              scrollController: _scrollController,
+              onRefreshed: (newNodes) {
+                setState(() {
+                  _mangaNodes!.addAll(newNodes as List<MediaNode>);
+                });
+              },
+              data: _mangaSearchData,
+              enabled: !_isAnime
+          );
+        },
+        beforeFetching: () => setState(() {
+          _mangaNodes = null;
+        }),
+        onFailure: () => setState(() {
+          _fetchMangaSuccess = false;
+        }),
+        queryParam: {
+          "q" : _title,
+          "limit" : 100,
+          "nsfw" : true,
+          "fields" : GlobalConstant.mangaMandatoryFields
+        }
     );
   }
 
@@ -273,11 +330,18 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
 
   void _scrollListener() {
     if (!_isShowingMediaList) {
-      if (_listenerAttached) {
+      if (_fetchAnimeSuccess) {
         setState(() {
-          _listenerAttached = false;
-          _autoRefresh?.detachListener();
-          _autoRefresh = null;
+          _fetchAnimeSuccess = false;
+          _animeAutoRefresh?.detachListener();
+          _animeAutoRefresh = null;
+        });
+      }
+      if (_fetchAnimeSuccess) {
+        setState(() {
+          _fetchMangaSuccess = false;
+          _mangaAutoRefresh?.detachListener();
+          _mangaAutoRefresh = null;
         });
       }
     }
@@ -329,6 +393,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
                             _scrollController.jumpTo(0);
                             _textEditingController.clear();
                             setState(() {
+                              _isAnime = true;
                               _isSearchBarOnFocus = false;
                               _isShowingMediaList = false;
                               _isClearButtonVisible = false;
@@ -416,6 +481,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
                       _scrollController.jumpTo(0);
                       _textEditingController.clear();
                       setState(() {
+                        _isAnime = true;
                         _isSearchBarOnFocus = false;
                         _isShowingMediaList = false;
                         _isClearButtonVisible = false;
@@ -462,7 +528,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
                     ),
                   ]),
               ) : !_isShowingMediaList ? SliverToBoxAdapter(
-                child:  SearchHistory(
+                child: SearchHistory(
                   searchesHistory: _searchesHistory,
                   onTap: (string) {
                     _focusNode.unfocus();
@@ -485,24 +551,85 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
                   onDelete: _deleteHistory,
                   onDeleteAll: () => _deleteAllHistory(context),
                 )
-              ) : _nodes.isNotEmpty && !_isTitleUpdated ? MMediaList(
-                nodes: _nodes,
+              ) : _isAnime ? _MediaList(
+                nodes: _animeNodes,
                 isAnime: true,
+                isShowingList: _animeNodes != null && !_isTitleUpdated,
                 scrollController: _scrollController,
-                autoRefresh: _autoRefresh
-              )
-              : SliverToBoxAdapter(
-                child: SizedBox(
-                  height: MediaQuery.of(context).size.height - (kToolbarHeight + 46),
-                  child: const Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                ),
-              )
+              ) : _MediaList(
+                nodes: _mangaNodes,
+                isAnime: false,
+                isShowingList: _mangaNodes != null && !_isTitleUpdated,
+                scrollController: _scrollController,
+              ),
             ],
           );
         }
-      )
+      ),
+      floatingActionButton: _isShowingMediaList ? MediaToggle(
+        onToggleChange: (index) {
+          if (index == 0 && !_isAnime) {
+            _scrollController.jumpTo(0);
+            setState(() {
+              _isAnime = true;
+            });
+          } else {
+            if (_isAnime) {
+              _scrollController.jumpTo(0);
+              setState(() {
+                _isAnime = false;
+              });
+            }
+          }
+        }
+      ) : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+    );
+  }
+}
+
+class _MediaList extends StatefulWidget {
+  final List<MediaNode>? nodes;
+  final bool isAnime;
+  final bool isShowingList;
+  ScrollController? scrollController;
+  RefreshContentUtil? autoRefresh;
+
+  _MediaList({
+    super.key,
+    required this.nodes,
+    required this.isAnime,
+    required this.isShowingList,
+    this.scrollController,
+    this.autoRefresh
+  });
+
+  @override
+  State<_MediaList> createState() => _MediaListState();
+}
+
+class _MediaListState extends State<_MediaList> {
+  @override
+  Widget build(BuildContext context) {
+    return widget.isShowingList ? widget.nodes!.isNotEmpty ?  MMediaList(
+      nodes: widget.nodes!,
+      isAnime: widget.isAnime,
+      scrollController: widget.scrollController,
+      autoRefresh: widget.autoRefresh,
+    ) : SliverFillRemaining(
+      child: Center(
+        child: Text(
+          "No Media Found",
+          style: Theme.of(context).textTheme.displaySmall,
+        ),
+      ),
+    ) : SliverToBoxAdapter(
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height - (kToolbarHeight + 46),
+        child: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      ),
     );
   }
 }

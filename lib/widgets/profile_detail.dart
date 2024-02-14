@@ -1,7 +1,8 @@
-import 'package:anime_gallery/model/user_information.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import '../model/mal/user_information.dart';
 
 class ProfileDetail extends StatelessWidget {
   const ProfileDetail({super.key, required this.userInfo});

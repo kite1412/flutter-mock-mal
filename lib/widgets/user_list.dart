@@ -1,5 +1,4 @@
-import 'package:anime_gallery/api/api_helper.dart';
-import 'package:anime_gallery/model/user_information.dart';
+import 'package:anime_gallery/api/mal/api_helper.dart';
 import 'package:anime_gallery/notifier/global_notifier.dart';
 import 'package:anime_gallery/other/media_status.dart';
 import 'package:anime_gallery/util/global_constant.dart';
@@ -15,9 +14,9 @@ import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
-import '../model/data.dart';
-import '../model/media_node.dart';
-import '../model/paging.dart';
+import '../model/mal/data.dart';
+import '../model/mal/media_node.dart';
+import '../model/mal/user_information.dart';
 
 final Logger _log = Logger();
 
@@ -889,6 +888,7 @@ class _LoadData {
         isAnime,
         {
           "limit" : limit,
+          "nsfw" : true,
           "fields" : isAnime  ?
           GlobalConstant.mandatoryFields : GlobalConstant.mangaMandatoryFields
         },

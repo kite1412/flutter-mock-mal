@@ -1,8 +1,6 @@
-import 'package:anime_gallery/model/node_with_rank.dart';
-import 'package:anime_gallery/model/paging.dart';
+import 'package:anime_gallery/model/mal/node_with_rank.dart';
+import 'package:anime_gallery/model/mal/paging.dart';
 import 'package:json_annotation/json_annotation.dart';
-
-import 'data.dart';
 
 part 'data_with_node_ranked.g.dart';
 

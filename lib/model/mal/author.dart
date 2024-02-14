@@ -1,4 +1,4 @@
-import 'package:anime_gallery/model/person.dart';
+import 'package:anime_gallery/model/mal/person.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'author.g.dart';

@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import 'package:anime_gallery/api/api_helper.dart';
+import 'package:anime_gallery/api/mal/api_helper.dart';
 import 'package:anime_gallery/notifier/global_notifier.dart';
 import 'package:anime_gallery/util/global_constant.dart';
 import 'package:anime_gallery/widgets/media_display.dart';
@@ -10,8 +10,8 @@ import 'package:provider/provider.dart';
 import 'package:toggle_switch/toggle_switch.dart';
 import 'package:uuid/uuid.dart';
 
-import '../model/media_node.dart';
-import '../model/node_with_rank.dart';
+import '../model/mal/media_node.dart';
+import '../model/mal/node_with_rank.dart';
 import '../other/media_category.dart';
 import 'media_detail.dart';
 

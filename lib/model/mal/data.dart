@@ -1,5 +1,5 @@
-import 'package:anime_gallery/model/paging.dart';
-import 'package:anime_gallery/model/season.dart';
+import 'package:anime_gallery/model/mal/paging.dart';
+import 'package:anime_gallery/model/mal/season.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 import 'media_node.dart';
