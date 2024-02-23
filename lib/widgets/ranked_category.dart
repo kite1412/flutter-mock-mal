@@ -37,8 +37,14 @@ class RankCategory extends StatefulWidget {
 }
 
 class _RankCategoryState extends State<RankCategory> {
-  int _initialIndex = 0;
+  late int _initialIndex;
   final String _heroTag = const Uuid().v4();
+
+  @override
+  void initState() {
+    super.initState();
+    _initialIndex = widget.isAnime ? 0 : 1;
+  }
 
   @override
   Widget build(BuildContext context) {

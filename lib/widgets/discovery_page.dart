@@ -53,7 +53,6 @@ class _DiscoveryPageState extends State<DiscoveryPage> with SingleTickerProvider
   bool _fetchAnimeSuccess = false;
   bool _fetchMangaSuccess = false;
   bool _isAnime = true;
-  bool _canPop = true;
   List<MediaNodeRanked> _rankingNodes = [];
   List<MediaNodeRanked> _rankingNodesManga = [];
   List<MediaNodeRanked> _intermediateRankingNodes = [];
@@ -228,7 +227,12 @@ class _DiscoveryPageState extends State<DiscoveryPage> with SingleTickerProvider
     dataCallback: (data) {
       _rankMangaData = data;
     },
-    queryParam: _categories()[0].queryParams,
+    queryParam: {
+      "ranking_type" : "all",
+      "limit" : 20,
+      "nsfw" : true,
+      "fields" : GlobalConstant.mangaMandatoryFields,
+    },
     needRank: true,
     );
   }
@@ -415,7 +419,6 @@ class _DiscoveryPageState extends State<DiscoveryPage> with SingleTickerProvider
                                 _isSearchBarOnFocus = false;
                                 _isShowingMediaList = false;
                                 _isClearButtonVisible = false;
-                                _canPop = true;
                               });
                             }
                           }
@@ -463,9 +466,6 @@ class _DiscoveryPageState extends State<DiscoveryPage> with SingleTickerProvider
                     canPop: !_isSearchBarOnFocus,
                     onTap: () {
                       _scrollController.jumpTo(0);
-                      setState(() {
-                        _canPop = false;
-                      });
                       if (_isShowingMediaList) {
                         setState(() {
                           _isOnMediaListLoading = true;
@@ -534,7 +534,6 @@ class _DiscoveryPageState extends State<DiscoveryPage> with SingleTickerProvider
                               _isSearchBarOnFocus = false;
                               _isShowingMediaList = false;
                               _isClearButtonVisible = false;
-                              _canPop = true;
                             });
                           }
                         }
@@ -626,15 +625,19 @@ class _DiscoveryPageState extends State<DiscoveryPage> with SingleTickerProvider
                         initialData: _isRankShowingAnime ? _rankAnimeData : _rankMangaData,
                         onToggle: (int index) {
                           if (index == 0) {
-                            setState(() {
-                              _intermediateRankingNodes = _rankingNodes;
-                              _isRankShowingAnime = true;
-                            });
+                            if (!_isRankShowingAnime) {
+                              setState(() {
+                                _intermediateRankingNodes = _rankingNodes;
+                                _isRankShowingAnime = true;
+                              });
+                            }
                           } else {
-                            setState(() {
-                              _intermediateRankingNodes = _rankingNodesManga;
-                              _isRankShowingAnime = false;
-                            });
+                            if (_isRankShowingAnime) {
+                              setState(() {
+                                _intermediateRankingNodes = _rankingNodesManga;
+                                _isRankShowingAnime = false;
+                              });
+                            }
                           }
                         }
                     ),

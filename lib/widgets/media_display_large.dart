@@ -36,7 +36,7 @@ class MediaDisplayLarge extends StatelessWidget {
     String s = "";
     if (string.length == 2
         || string.length == 3
-        || (string.length > 3 && !string.contains(" "))) {
+        || (string.length > 3 && !string.contains(" ") && !string.contains("-"))) {
       s = string.toLowerCase();
     } else if (string.contains(" ")) {
       final split = string.split(" ");

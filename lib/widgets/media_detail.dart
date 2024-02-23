@@ -617,7 +617,7 @@ class _MediaDetailsState extends State<_MediaDetails>{
   }
 
   bool _needContent() {
-    return !_checkGenre() || !_checkAlternativeTitle() || !_checkSeason();
+    return !_checkGenre() || !_checkAlternativeTitle();
   }
 
   bool _checkStudio() {
@@ -655,7 +655,7 @@ class _MediaDetailsState extends State<_MediaDetails>{
     final AlternativeTitles alternativeTitles = widget.media.alternativeTitles!;
     final Map<String, String> alternatives = {
     if (alternativeTitles.synonyms != null && alternativeTitles.synonyms!.isNotEmpty)
-        "Synonym:" : alternativeTitles.synonyms!.join(", ")
+        "Synonyms:" : alternativeTitles.synonyms!.join(", ")
       ,
       if (alternativeTitles.en != null && alternativeTitles.en!.isNotEmpty)
         "En:" : alternativeTitles.en!
@@ -696,14 +696,14 @@ class _MediaDetailsState extends State<_MediaDetails>{
     String content = "";
     if (widget.isAnime) {
       if (_checkStudio()) {
-        title = "Studio:";
+        title = "Studios:";
         content = widget.media.studios!.map((studio) {
           return studio.name;
         }).toList().join(", ");
       }
     } else {
       if (_checkAuthor()) {
-        title = "Author:";
+        title = "Authors:";
         content = widget.media.authors!.map((author) {
           return "${author.node.firstName} ${author.node.lastName}";
         }).toList().join(", ");
@@ -711,6 +711,14 @@ class _MediaDetailsState extends State<_MediaDetails>{
     }
     return ((_checkAuthor() || _checkStudio()) && _needContent() || _isExpanded) ? _detail(title, content)
       : const SizedBox();
+  }
+
+  Widget _episodeOrChapter() {
+    final String title = widget.isAnime ? "Episodes:" : "Chapters:";
+    final String content = widget.isAnime ?
+        widget.media.numEpisodes == 0 ? "On Airing" : widget.media.numEpisodes!.toString() :
+        widget.media.numChapters == 0 ? "On Publishing" : widget.media.numChapters!.toString();
+    return _detail(title, content);
   }
 
   @override
@@ -725,8 +733,9 @@ class _MediaDetailsState extends State<_MediaDetails>{
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _episodeOrChapter(),
           if (_checkGenre()) _detail(
-            "Genre:",
+            "Genres:",
             widget.media.genres!.map((genre) {
               return genre.name;
             }).toList().join(", ")
@@ -734,16 +743,16 @@ class _MediaDetailsState extends State<_MediaDetails>{
           if (_checkAlternativeTitle()) _detail(
             "Alternative Titles:", "", custom: _alternativeTitles(context)
           ),
-          if (_checkSeason() && widget.isAnime) _detail(
-            "Start Season:",
-            "${widget.media.startSeason!.season[0].toUpperCase() +
-              widget.media.startSeason!.season.substring(1)}, ${widget.media.startSeason!.year}"
+          if ((_needContent() || _isExpanded) && _checkSeason() && widget.isAnime) _detail(
+              "Start Season:",
+              "${widget.media.startSeason!.season[0].toUpperCase() +
+                  widget.media.startSeason!.season.substring(1)}, ${widget.media.startSeason!.year}"
           ),
           if ((_needContent() || _isExpanded) && _checkRating() && widget.isAnime) _detail(
             "Rating",
             _mapRating()
           ),
-          _studioOrAuthors(),
+          if ((_needContent() || _isExpanded)) _studioOrAuthors(),
           if (_isExpandable()) Center(
             child: _RotateableArrow(
               onTap: () {

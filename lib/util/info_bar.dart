@@ -61,6 +61,7 @@ class InfoBar {
         break;
       case "ona":
       case "oel":
+      case "novel":
         color = const Color.fromARGB(255, 255, 220, 0);
         break;
       case "special":
@@ -91,6 +92,7 @@ class InfoBar {
         break;
       case "currently_airing":
       case "currently_publishing":
+      case "publishing":
         color = const Color.fromARGB(255, 70, 180, 90);
         break;
       case "not_yet_aired":
@@ -158,6 +160,10 @@ class InfoBar {
       return "Commercial";
     } else if (field.length == 3 || field.length == 2) {
       return field.toUpperCase();
+    } else if (field.contains("-")) {
+      final split = field.split("-");
+      return "${split[0][0].toUpperCase()}${split[0].substring(1)} "
+          "${split[1][0].toUpperCase()}${split[1].substring(1)}";
     }
     return field[0].toUpperCase() + field.substring(1);
   }

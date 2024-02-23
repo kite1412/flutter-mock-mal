@@ -19,6 +19,7 @@ class CharacterPage extends StatelessWidget {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
+            pinned: true,
             leading: Row(
               children: [
                 IconButton(
@@ -27,7 +28,7 @@ class CharacterPage extends StatelessWidget {
                 ),
                 const SizedBox(width: 8,),
                 Text(
-                  "Character",
+                  "Characters",
                   style: Theme.of(context).textTheme.displaySmall,
                 )
               ],

@@ -73,7 +73,8 @@ class MediaNode {
       ..userMediaStatus = source.userMediaStatus
       ..numEpisodes = source.numEpisodes
       ..numChapters = source.numChapters
-      ..numVolumes = source.numVolumes;
+      ..numVolumes = source.numVolumes
+      ..authors = source.authors;
   }
 
   static MediaNode fromJikanMedia(JikanMedia media) {
