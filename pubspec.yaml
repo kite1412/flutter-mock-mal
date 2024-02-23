@@ -42,7 +42,9 @@ dependencies:
   visibility_detector: ^0.4.0+2
   flutter_svg: ^2.0.9
   animated_list_plus: ^0.5.2
-#  sliver_tools: ^0.2.12
+  drift: ^2.15.0
+  sqlite3_flutter_libs: ^0.5.0
+  path_provider: ^2.0.0
   flutter:
     sdk: flutter
 
@@ -54,6 +56,7 @@ dependencies:
 dev_dependencies:
   json_serializable: ^6.7.1
   build_runner: ^2.4.8
+  drift_dev: ^2.15.0
   flutter_test:
     sdk: flutter
 

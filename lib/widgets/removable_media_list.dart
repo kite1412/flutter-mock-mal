@@ -14,6 +14,7 @@ import '../other/media_status.dart';
 // for solely user's media list purpose
 class RemovableMediaList extends StatefulWidget {
   List<MediaNode> nodes;
+  VoidCallback? onMediaTap;
   final bool isAnime;
   final MediaStatus status;
 
@@ -22,6 +23,7 @@ class RemovableMediaList extends StatefulWidget {
     required this.nodes,
     required this.isAnime,
     required this.status,
+    this.onMediaTap
   });
 
 
@@ -50,6 +52,9 @@ class _RemovableMediaListState extends State<RemovableMediaList> {
               child: MediaCard(
                   media: Provider.of<RemovableListNotifier>(context, listen: false).currentMedia,
                   isAnime: widget.isAnime,
+                onTap: (node) {
+                    widget.onMediaTap?.call();
+                },
               ),
             )
           );

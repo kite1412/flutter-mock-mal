@@ -3,6 +3,7 @@ import 'package:anime_gallery/model/mal/studio.dart';
 import 'package:anime_gallery/model/mal/user_media_status.dart';
 import 'package:json_annotation/json_annotation.dart';
 
+import '../jikan/media.dart';
 import 'alternative_titles.dart';
 import 'author.dart';
 import 'genre.dart';
@@ -73,6 +74,25 @@ class MediaNode {
       ..numEpisodes = source.numEpisodes
       ..numChapters = source.numChapters
       ..numVolumes = source.numVolumes;
+  }
+
+  static MediaNode fromJikanMedia(JikanMedia media) {
+    return MediaNode(
+      media.malId!,
+      media.titles![0].title!,
+      MediaPicture.fromJikanImage(media.images!)
+    )
+      ..rank = media.rank
+      ..mean = media.score
+      ..synopsis = media.synopsis
+      ..status = media.status
+      ..mediaType = media.type;
+  }
+
+  static List<MediaNode> fromJikanMediaList(List<JikanMedia> list) {
+    return list.map((e) =>
+      MediaNode.fromJikanMedia(e)
+    ).toList();
   }
 
   factory MediaNode.empty() {

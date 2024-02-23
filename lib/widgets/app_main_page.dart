@@ -86,40 +86,25 @@ class _MainPageState extends State<MainPage> {
     return DefaultTabController(
       length: GlobalConstant.tabs.length,
       child: Scaffold(
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: _selectedIndex,
-          onDestinationSelected: (index) => _updateIndex(index),
-          destinations: <Widget>[
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined, color: navDesIconColor(0), size: 30,),
-              label: "Home",
-              selectedIcon: Icon(Icons.home, color: navDesIconColor(0), size: 30,),
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.list, color: navDesIconColor(1), size: 30,),
-              label: "My List",
-              selectedIcon: Icon(Icons.list, color: navDesIconColor(1), size: 30,),
-            ),
-          ],
-        ),
-        body: [
-          TabBarView(
-            children: [
-              // TODO(change to MMediaList and set the UpdateMediaNotifier.userListShowingAnime to true at init)
-              MediaList(isAnime: true, appBarListener: (controller) => _adjustAppBarSize(controller)),
-              MediaList(isAnime: false, appBarListener: (controller) => _adjustAppBarSize(controller)),
-            ],
-          ),
-          PopScope(
-            canPop: false,
-            onPopInvoked: (index) {
-              setState(() {
-                _selectedIndex = 0;
-              });
-            },
-            child: UserList(userInfo: userInfo, onProfileTap: () => _showProfile(context)),
-          )
-        ][_selectedIndex],
+        body: DiscoveryPage(userInfo: userInfo, onProfileTap: () => _showProfile(context),),
+        // body: [
+        //   TabBarView(
+        //     children: [
+        //       // TODO(change to MMediaList and set the UpdateMediaNotifier.userListShowingAnime to true at init)
+        //       MediaList(isAnime: true, appBarListener: (controller) => _adjustAppBarSize(controller)),
+        //       MediaList(isAnime: false, appBarListener: (controller) => _adjustAppBarSize(controller)),
+        //     ],
+        //   ),
+        //   PopScope(
+        //     canPop: false,
+        //     onPopInvoked: (index) {
+        //       setState(() {
+        //         _selectedIndex = 0;
+        //       });
+        //     },
+        //     child: UserList(userInfo: userInfo, onProfileTap: () => _showProfile(context)),
+        //   )
+        // ][_selectedIndex],
         // appBar: AppBar(
         //   toolbarHeight: _appBarHeight,
         //   bottom: _selectedIndex == 0 ? TabBar(
@@ -164,34 +149,34 @@ class _MainPageState extends State<MainPage> {
         //     ),
         //   ],
         // ),
-        floatingActionButton: _selectedIndex == 0 ? FloatingActionButton.large(
-          onPressed: () {
-            setState(() {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) {
-                  return const DiscoveryPage();
-                })
-              );
-            });
-          },
-          shape: const CircleBorder(),
-          child: Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  const Color.fromARGB(200, 46, 90, 136),
-                  MediaQuery.of(context).platformBrightness == Brightness.dark ?
-                    Colors.black87 : Colors.grey.shade400,
-                ]
-              ),
-              shape: BoxShape.circle
-            ),
-            child: const Icon(Icons.search_rounded, color: Colors.white, size: 40,),
-          )
-        ) : null,
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        // floatingActionButton: _selectedIndex == 0 ? FloatingActionButton.large(
+        //   onPressed: () {
+        //     setState(() {
+        //       Navigator.of(context).push(
+        //         MaterialPageRoute(builder: (context) {
+        //           return const DiscoveryPage();
+        //         })
+        //       );
+        //     });
+        //   },
+        //   shape: const CircleBorder(),
+        //   child: Container(
+        //     width: 80,
+        //     height: 80,
+        //     decoration: BoxDecoration(
+        //       gradient: LinearGradient(
+        //         colors: [
+        //           const Color.fromARGB(200, 46, 90, 136),
+        //           MediaQuery.of(context).platformBrightness == Brightness.dark ?
+        //             Colors.black87 : Colors.grey.shade400,
+        //         ]
+        //       ),
+        //       shape: BoxShape.circle
+        //     ),
+        //     child: const Icon(Icons.search_rounded, color: Colors.white, size: 40,),
+        //   )
+        // ) : null,
+        // floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       ),
     );
   }

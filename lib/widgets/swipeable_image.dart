@@ -45,7 +45,7 @@ class _SwipeableImageState extends State<SwipeableImage> {
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
             clipBehavior: Clip.antiAlias,
             child: Image(
-              image: Image.network(picture.medium).image,
+              image: Image.network(picture.large.isNotEmpty ? picture.large : picture.medium).image,
               fit: BoxFit.cover,
             ),
           )
@@ -57,7 +57,7 @@ class _SwipeableImageState extends State<SwipeableImage> {
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
             clipBehavior: Clip.antiAlias,
             child: Image(
-              image: Image.network(picture.medium).image,
+              image: Image.network(picture.large.isNotEmpty ? picture.large : picture.medium).image,
               fit: BoxFit.cover,
             ),
           )

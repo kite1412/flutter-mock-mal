@@ -22,6 +22,12 @@ class ImageFormat {
   String? imageUrl;
   @JsonKey(name: "small_image_url")
   String? smallImageUrl;
+  @JsonKey(name: "medium_image_url")
+  String? mediumImageUrl;
+  @JsonKey(name: "large_image_url")
+  String? largeImageUrl;
+  @JsonKey(name: "maximum_image_url")
+  String? maximumImageUrl;
 
   ImageFormat();
 

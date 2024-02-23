@@ -66,6 +66,13 @@ class _RankedCategoryPageState extends State<RankedCategoryPage> {
           SliverAppBar(
             pinned: true,
             expandedHeight: kToolbarHeight * 2,
+            leading: IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(
+                Icons.arrow_back_rounded,
+                color: Colors.white,
+              ),
+            ),
             flexibleSpace: GestureDetector(
               onTap: () => _scrollController.animateTo(
                 0,
@@ -197,6 +204,13 @@ class _CategoryPageState extends State<CategoryPage> {
           SliverAppBar(
             pinned: true,
             expandedHeight: kToolbarHeight * 2,
+            leading: IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(
+                Icons.arrow_back_rounded,
+                color: Colors.white,
+              )
+            ),
             flexibleSpace: GestureDetector(
               onTap: () => _scrollController.animateTo(
                   0,

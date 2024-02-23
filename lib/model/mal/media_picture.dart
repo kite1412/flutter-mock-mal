@@ -1,3 +1,4 @@
+import 'package:anime_gallery/model/jikan/image.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'media_picture.g.dart';
@@ -9,6 +10,10 @@ class MediaPicture {
   String large;
 
   MediaPicture(this.medium, this.large);
+
+  static MediaPicture fromJikanImage(Image image) {
+    return MediaPicture(image.jpg!.imageUrl!, image.jpg?.largeImageUrl ?? image.jpg!.imageUrl!);
+  }
 
   factory MediaPicture.empty() {
     return MediaPicture("", "");

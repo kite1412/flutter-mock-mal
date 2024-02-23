@@ -15,7 +15,7 @@ class InfoBar {
     return field != null ? field.toString() : "N/A" ;
   }
 
-  static String _mapStatus(String status) {
+  static String mapStatus(String status) {
     String end = "";
     switch(status) {
       case "finished_airing":
@@ -40,7 +40,7 @@ class InfoBar {
     return end;
   }
 
-  static Color _mediaTypeColor(String mediaType) {
+  static Color mediaTypeColor(String mediaType) {
     Color color  = Colors.transparent;
     switch(mediaType) {
       case "unknown":
@@ -82,7 +82,7 @@ class InfoBar {
     return color;
   }
 
-  static Color _statusColor(String status) {
+  static Color statusColor(String status) {
     Color color = Colors.grey.shade700;
     switch(status) {
       case "finished_airing":
@@ -105,7 +105,10 @@ class InfoBar {
       BuildContext context,
       Color containerColor,
       String text,
-      {double borderRadius = 4}
+      {double radius = 4,
+      BorderRadius? borderRadius,
+      EdgeInsets? padding,
+      double? fontSize}
   ) {
     return Container(
       padding: const EdgeInsets.all(3),
@@ -113,12 +116,18 @@ class InfoBar {
       decoration: BoxDecoration(
         shape: BoxShape.rectangle,
         color: containerColor,
-        borderRadius: BorderRadius.all(Radius.circular(borderRadius)),
+        borderRadius: borderRadius ?? BorderRadius.all(Radius.circular(radius)),
       ),
-      child: Text(
-        _mapField(text),
-        style: Theme.of(context).textTheme.bodySmall!.copyWith(color: Colors.white),
-      ),
+      child: Padding(
+        padding: padding ?? const EdgeInsets.all(0),
+        child: Text(
+          mapField(text),
+          style: Theme.of(context).textTheme.bodySmall!.copyWith(
+            color: Colors.white,
+            fontSize: fontSize
+          ),
+        ),
+      )
     );
   }
 
@@ -140,7 +149,7 @@ class InfoBar {
     );
   }
 
-  static String _mapField(String field) {
+  static String mapField(String field) {
     if (field.contains("_")) {
       final strings = field.split("_");
       return "${strings[0][0].toUpperCase()}${strings[0].substring(1)}"
@@ -161,14 +170,14 @@ class InfoBar {
     return [
       infoBar(
         context,
-        _mediaTypeColor(assertNullStringField(media.mediaType)),
-        _mapField(assertNullStringField(media.mediaType))
+        mediaTypeColor(assertNullStringField(media.mediaType)),
+        mapField(assertNullStringField(media.mediaType))
       ),
       const SizedBox(width: 8,),
       infoBar(
         context,
-        _statusColor(assertNullStringField(media.status)),
-        _mapStatus(assertNullStringField(media.status))
+        statusColor(assertNullStringField(media.status)),
+        mapStatus(assertNullStringField(media.status))
       ),
       if (showWarning) Row(
         children: [

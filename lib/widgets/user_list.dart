@@ -34,14 +34,13 @@ class UserList extends StatefulWidget {
   State<UserList> createState() => _UserListState();
 }
 
-class _UserListState extends State<UserList>
-    with SingleTickerProviderStateMixin {
+class _UserListState extends State<UserList> {
   int _selectedStatusIndex = 0;
   bool _hideMediaToggle = false;
   bool _allowScrollPage = true;
-  bool _isBarAutoJumpEnable = true;
   bool _isAppBarOnHide = false;
   bool _isAnime = true;
+  bool _isAutoJumpEnabled = false;
   List<MediaStatus> _mediaStatuses = MediaStatus.status(true, includeAll: true);
   List<MediaNode>? _allNodes;
   List<MediaNode>? _onGoingNodes;
@@ -50,16 +49,7 @@ class _UserListState extends State<UserList>
   List<MediaNode>? _droppedNodes;
   List<MediaNode>? _onPlanNodes;
   late ScrollController _scrollController;
-  late final TabController _tabController;
   late final PageController _pageController;
-
-  void _tabControllerListener() {
-    if (_tabController.index == 0) {
-      Provider.of<GlobalNotifier>(context, listen: false).userListShowingAnime = true;
-    } else {
-      Provider.of<GlobalNotifier>(context, listen: false).userListShowingAnime = false;
-    }
-  }
 
   void _scrollListener() {
     if (_scrollController.offset >= kToolbarHeight) {
@@ -92,9 +82,9 @@ class _UserListState extends State<UserList>
   }
 
   void _pageListener() {
-    if (!_isBarAutoJumpEnable) {
+    if (!_isAutoJumpEnabled) {
       setState(() {
-        _isBarAutoJumpEnable = true;
+        _isAutoJumpEnabled = true;
       });
     }
     if (_pageController.page != null) {
@@ -192,17 +182,24 @@ class _UserListState extends State<UserList>
             _decideNodesLoad(onNewLoaded, status);
           },
           onComplete: () {
-            if (!isUpdatingPriorStatus) {
-              Provider.of<GlobalNotifier>(context, listen: false).statusNeedUpdate = "*";
-            } else {
-              Provider.of<GlobalNotifier>(context, listen: false).statusBeforeUpdate = "*";
-            }
             if (status == null) {
               Provider.of<GlobalNotifier>(context, listen: false).allPageUpdate = false;
+            }
+            if (isUpdatingPriorStatus) {
+              Provider.of<GlobalNotifier>(context, listen: false).statusBeforeUpdate = "*";
+            } else {
+              if (status != null) {
+                Provider.of<GlobalNotifier>(context, listen: false).statusNeedUpdate = "*";
+              }
             }
           }
       );
     }
+  }
+
+  void _resetState() {
+    Provider.of<GlobalNotifier>(context, listen: false).enableMediaToggleChange = true;
+    Provider.of<GlobalNotifier>(context ,listen: false).userListShowingAnime = true;
   }
 
   @override
@@ -211,12 +208,11 @@ class _UserListState extends State<UserList>
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       Provider.of<GlobalNotifier>(context, listen: false).statusNeedUpdate = "*";
       Provider.of<GlobalNotifier>(context, listen: false).statusBeforeUpdate = "*";
+      Provider.of<GlobalNotifier>(context, listen: false).currentSessionAlreadyUpdated = true;
     });
-    _tabController = TabController(length: 2, vsync: this)
-      ..addListener(_tabControllerListener);
     _scrollController = ScrollController()
       ..addListener(_scrollListener);
-    _pageController = PageController(keepPage: false)
+    _pageController = PageController()
       ..addListener(_pageListener);
   }
 
@@ -228,14 +224,12 @@ class _UserListState extends State<UserList>
     final statusBeforeUpdate = Provider.of<GlobalNotifier>(context, listen: false).statusBeforeUpdate;
     final alreadyUpdated = Provider.of<GlobalNotifier>(context).currentSessionAlreadyUpdated;
     if (statusNeedUpdate != "*" && !alreadyUpdated) {
+      _fetchMedia(statusNeedUpdate);
+      _fetchMedia(statusBeforeUpdate, isUpdatingPriorStatus: true);
+      _fetchMedia(null);
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
         Provider.of<GlobalNotifier>(context, listen: false).currentSessionAlreadyUpdated = true;
       });
-      _fetchMedia(statusNeedUpdate);
-      _fetchMedia(statusBeforeUpdate, isUpdatingPriorStatus: true);
-      if (statusNeedUpdate.isNotEmpty) {
-        _fetchMedia(null);
-      }
     }
     if (_isAnime != isAnime) {
       setState(() {
@@ -260,242 +254,226 @@ class _UserListState extends State<UserList>
   @override
   void dispose() {
     super.dispose();
-    _tabController.dispose();
     _scrollController.dispose();
     _pageController.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraint) {
-        return NestedScrollView(
-          controller: _scrollController,
-          headerSliverBuilder: (context, boool) {
-            return [
-              SliverAppBar(
-                snap: true,
-                pinned: true,
-                floating: true,
-                leading: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: IconButton(
-                      icon: const Icon(Icons.favorite_outline),
-                      onPressed: () {
-                        //TODO show user's favorite anime and manga
-                      },
-                    )
-                ),
-                title: Padding(
-                  padding: EdgeInsets.only(top: 8, bottom: 8, right: widget.userInfo.name.isEmpty ? 48 : 0),
-                  child: Center(
-                    child: SvgPicture.asset(
-                      "images/mock-mal-logo.svg",
-                      height: 120,
-                      width: 120,
-                    ),
-                  ),
-                ),
-                actions: [
-                  widget.userInfo.name.isNotEmpty ? Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: GestureDetector(
-                      onTap: widget.onProfileTap,
-                      child: Hero(
-                        tag: "profile-pic",
-                        child: ClipOval(
-                          child: Image(
-                              height: 40.0,
-                              width: 40.0,
-                              image: Image.network(widget.userInfo.picture).image
+    return Scaffold(
+      body: PopScope(
+        onPopInvoked: (isPopped) => _resetState(),
+        child: LayoutBuilder(
+            builder: (context, constraint) {
+              return NestedScrollView(
+                  controller: _scrollController,
+                  headerSliverBuilder: (context, boool) {
+                    return [
+                      SliverAppBar(
+                        snap: true,
+                        pinned: true,
+                        floating: true,
+                        leading: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: IconButton(
+                              icon: const Icon(Icons.arrow_back_rounded),
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                            )
+                        ),
+                        title: Padding(
+                          padding: EdgeInsets.only(top: 8, bottom: 8, right: widget.userInfo.name.isNotEmpty ? 48 : 0),
+                          child: Center(
+                            child: SvgPicture.asset(
+                              "images/mock-mal-logo.svg",
+                              height: 120,
+                              width: 120,
+                            ),
                           ),
                         ),
+                        bottom: _TabBar(
+                          selectedStatusIndex: _selectedStatusIndex,
+                          isAnime: Provider.of<GlobalNotifier>(context).userListShowingAnime,
+                          onStatusTap: (status) {
+                            _isAppBarOnHide && _hideMediaToggle ? _scrollController.jumpTo(kToolbarHeight) : _scrollController.jumpTo(0);
+                            // prevent deleting upon status change in 'all' page
+                            // on the next selected page.
+                            // Provider.of<GlobalNotifier>(context, listen: false).isDismissalDone = true;
+                            setState(() {
+                              _isAutoJumpEnabled = true;
+                              _selectedStatusIndex = status.index;
+                            });
+                            _pageController.jumpToPage(status.index);
+                          },
+                          isAutoJumpEnabled: _isAutoJumpEnabled,
+                        ),
                       ),
-                    ),
-                  ) : const SizedBox(),
-                ],
-                bottom: _TabBar(
-                  selectedStatusIndex: _selectedStatusIndex,
-                  isAnime: Provider.of<GlobalNotifier>(context).userListShowingAnime,
-                  isAutoJumpEnable: _isBarAutoJumpEnable,
-                  onStatusTap: (status) {
-                    _isAppBarOnHide && _hideMediaToggle ? _scrollController.jumpTo(kToolbarHeight) : _scrollController.jumpTo(0);
-                    // prevent deleting upon status change in 'all' page
-                    // on the next selected page.
-                    // Provider.of<GlobalNotifier>(context, listen: false).isDismissalDone = true;
-                    setState(() {
-                      _selectedStatusIndex = status.index;
-                    });
-                    _pageController.jumpToPage(status.index);
+                    ];
                   },
-                  tabController: _tabController,
-                ),
-              ),
-            ];
-          },
-          body: Stack(
-            children: [
-              PageView(
-                onPageChanged: (index) {
-                  _isAppBarOnHide && _hideMediaToggle ? _scrollController.jumpTo(kToolbarHeight) : _scrollController.jumpTo(0);
-                  setState(() {
-                    _allowScrollPage = false;
-                  });
-                  // prevent deleting upon status change in 'all' page
-                  // on the next selected page.
-                  // Provider.of<GlobalNotifier>(context, listen: false).isDismissalDone = true;
-                  Future.delayed(const Duration(milliseconds: 550)).whenComplete(() {
-                    setState(() {
-                      _allowScrollPage = true;
-                    });
-                  });
-                },
-                physics: _allowScrollPage ? const AlwaysScrollableScrollPhysics() : const NeverScrollableScrollPhysics(),
-                controller: _pageController,
-                children: [
-                  MediaQuery.removePadding(
-                    removeTop: true,
-                    context: context,
-                    child: _Page(
-                      status: _mediaStatuses[0],
-                      nodes: _allNodes,
-                      isAnime: _isAnime,
-                      doWithNewNodes: (newNodes) {
-                        setState(() {
-                          _allNodes = newNodes;
-                        });
-                      },
-                    ),
-                  ),
-                  MediaQuery.removePadding(
-                    removeTop: true,
-                    context: context,
-                    child: _Page(
-                      status: _mediaStatuses[1],
-                      nodes: _onGoingNodes,
-                      isAnime: _isAnime,
-                      doWithNewNodes: (newNodes) {
-                        setState(() {
-                          _onGoingNodes = newNodes;
-                        });
-                      },
-                    ),
-                  ),
-                  MediaQuery.removePadding(
-                    removeTop: true,
-                    context: context,
-                    child: _Page(
-                      status: _mediaStatuses[2],
-                      nodes: _completedNodes,
-                      isAnime: _isAnime,
-                      doWithNewNodes: (newNodes) {
-                        setState(() {
-                          _completedNodes = newNodes;
-                        });
-                      },
-                    ),
-                  ),
-                  MediaQuery.removePadding(
-                    removeTop: true,
-                    context: context,
-                    child: _Page(
-                      status: _mediaStatuses[3],
-                      nodes: _onHoldNodes,
-                      isAnime: _isAnime,
-                      doWithNewNodes: (newNodes) {
-                        setState(() {
-                          _onHoldNodes = newNodes;
-                        });
-                      },
-                    ),
-                  ),
-                  MediaQuery.removePadding(
-                    removeTop: true,
-                    context: context,
-                    child: _Page(
-                      status: _mediaStatuses[4],
-                      nodes: _droppedNodes,
-                      isAnime: _isAnime,
-                      doWithNewNodes: (newNodes) {
-                        setState(() {
-                          _droppedNodes = newNodes;
-                        });
-                      },
-                    ),
-                  ),
-                  MediaQuery.removePadding(
-                    removeTop: true,
-                    context: context,
-                    child: _Page(
-                      status: _mediaStatuses[5],
-                      nodes: _onPlanNodes,
-                      isAnime: _isAnime,
-                      doWithNewNodes: (newNodes) {
-                        setState(() {
-                          _onPlanNodes = newNodes;
-                        });
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              AnimatedPositioned(
-                right: 0,
-                left: 0,
-                bottom: _hideMediaToggle ? -58 : 10,
-                duration: const Duration(milliseconds: 150),
-                child: Wrap(
-                  alignment: WrapAlignment.center,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        if (!Provider.of<GlobalNotifier>(context, listen: false).enableMediaToggleChange) {
-                          ScaffoldMessenger.of(context).showSnackBar(_warningSnackBar());
-                        }
-                      },
-                      child: MediaToggle(
-                        onToggleChange: (index) {
-                          if (index == 0) {
-                            if (!Provider.of<GlobalNotifier>(context, listen: false).userListShowingAnime) {
-                              Provider.of<GlobalNotifier>(context, listen: false).userListShowingAnime = true;
-                              _log.i(Provider.of<GlobalNotifier>(context, listen: false).userListShowingAnime);
-                              Provider.of<GlobalNotifier>(context, listen: false).enableMediaToggleChange = false;
-                            }
-                          } else {
-                            if (Provider.of<GlobalNotifier>(context, listen: false).userListShowingAnime) {
-                              Provider.of<GlobalNotifier>(context, listen: false).userListShowingAnime = false;
-                              _log.i(Provider.of<GlobalNotifier>(context, listen: false).userListShowingAnime);
-                              Provider.of<GlobalNotifier>(context, listen: false).enableMediaToggleChange = false;
-                            }
-                          }
+                  body: Stack(
+                    children: [
+                      PageView(
+                        onPageChanged: (index) {
+                          _isAppBarOnHide && _hideMediaToggle ? _scrollController.jumpTo(kToolbarHeight) : _scrollController.jumpTo(0);
+                          setState(() {
+                            _allowScrollPage = false;
+                          });
+                          // prevent deleting upon status change in 'all' page
+                          // on the next selected page.
+                          // Provider.of<GlobalNotifier>(context, listen: false).isDismissalDone = true;
+                          Future.delayed(const Duration(milliseconds: 550)).whenComplete(() {
+                            setState(() {
+                              _allowScrollPage = true;
+                            });
+                          });
                         },
+                        physics: _allowScrollPage ? const AlwaysScrollableScrollPhysics() : const NeverScrollableScrollPhysics(),
+                        controller: _pageController,
+                        children: [
+                          MediaQuery.removePadding(
+                            removeTop: true,
+                            context: context,
+                            child: _Page(
+                              status: _mediaStatuses[0],
+                              nodes: _allNodes,
+                              isAnime: _isAnime,
+                              doWithNewNodes: (newNodes) {
+                                setState(() {
+                                  _allNodes = newNodes;
+                                });
+                              },
+                            ),
+                          ),
+                          MediaQuery.removePadding(
+                            removeTop: true,
+                            context: context,
+                            child: _Page(
+                              status: _mediaStatuses[1],
+                              nodes: _onGoingNodes,
+                              isAnime: _isAnime,
+                              doWithNewNodes: (newNodes) {
+                                setState(() {
+                                  _onGoingNodes = newNodes;
+                                });
+                              },
+                            ),
+                          ),
+                          MediaQuery.removePadding(
+                            removeTop: true,
+                            context: context,
+                            child: _Page(
+                              status: _mediaStatuses[2],
+                              nodes: _completedNodes,
+                              isAnime: _isAnime,
+                              doWithNewNodes: (newNodes) {
+                                setState(() {
+                                  _completedNodes = newNodes;
+                                });
+                              },
+                            ),
+                          ),
+                          MediaQuery.removePadding(
+                            removeTop: true,
+                            context: context,
+                            child: _Page(
+                              status: _mediaStatuses[3],
+                              nodes: _onHoldNodes,
+                              isAnime: _isAnime,
+                              doWithNewNodes: (newNodes) {
+                                setState(() {
+                                  _onHoldNodes = newNodes;
+                                });
+                              },
+                            ),
+                          ),
+                          MediaQuery.removePadding(
+                            removeTop: true,
+                            context: context,
+                            child: _Page(
+                              status: _mediaStatuses[4],
+                              nodes: _droppedNodes,
+                              isAnime: _isAnime,
+                              doWithNewNodes: (newNodes) {
+                                setState(() {
+                                  _droppedNodes = newNodes;
+                                });
+                              },
+                            ),
+                          ),
+                          MediaQuery.removePadding(
+                            removeTop: true,
+                            context: context,
+                            child: _Page(
+                              status: _mediaStatuses[5],
+                              nodes: _onPlanNodes,
+                              isAnime: _isAnime,
+                              doWithNewNodes: (newNodes) {
+                                setState(() {
+                                  _onPlanNodes = newNodes;
+                                });
+                              },
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                )
-              ),
-            ],
-          )
-        );
-      }
+                      AnimatedPositioned(
+                          right: 0,
+                          left: 0,
+                          bottom: _hideMediaToggle ? -58 : 10,
+                          duration: const Duration(milliseconds: 150),
+                          child: Wrap(
+                            alignment: WrapAlignment.center,
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  if (!Provider.of<GlobalNotifier>(context, listen: false).enableMediaToggleChange) {
+                                    ScaffoldMessenger.of(context).showSnackBar(_warningSnackBar());
+                                  }
+                                },
+                                child: MediaToggle(
+                                  onToggleChange: (index) {
+                                    if (index == 0) {
+                                      if (!Provider.of<GlobalNotifier>(context, listen: false).userListShowingAnime) {
+                                        Provider.of<GlobalNotifier>(context, listen: false).userListShowingAnime = true;
+                                        _log.i(Provider.of<GlobalNotifier>(context, listen: false).userListShowingAnime);
+                                        Provider.of<GlobalNotifier>(context, listen: false).enableMediaToggleChange = false;
+                                      }
+                                    } else {
+                                      if (Provider.of<GlobalNotifier>(context, listen: false).userListShowingAnime) {
+                                        Provider.of<GlobalNotifier>(context, listen: false).userListShowingAnime = false;
+                                        _log.i(Provider.of<GlobalNotifier>(context, listen: false).userListShowingAnime);
+                                        Provider.of<GlobalNotifier>(context, listen: false).enableMediaToggleChange = false;
+                                      }
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
+                          )
+                      ),
+                    ],
+                  )
+              );
+            }
+        ),
+      )
     );
   }
 }
 
 class _TabBar extends StatefulWidget implements PreferredSizeWidget {
   int selectedStatusIndex = 0;
-  bool isAutoJumpEnable = true;
+  bool isAutoJumpEnabled = true;
   final bool isAnime;
   final void Function(MediaStatus) onStatusTap;
-  final TabController? tabController;
 
   _TabBar({
     super.key,
     required this.isAnime,
     required this.onStatusTap,
     required this.selectedStatusIndex,
-    required this.isAutoJumpEnable,
-    this.tabController,
+    required this.isAutoJumpEnabled,
   });
 
   @override
@@ -527,7 +505,6 @@ class _TabBarState extends State<_TabBar> {
             child: GestureDetector(
               onTap: () {
                 setState(() {
-                  widget.isAutoJumpEnable = true;
                   widget.selectedStatusIndex = status.index;
                 });
                 widget.onStatusTap(status);
@@ -558,10 +535,14 @@ class _TabBarState extends State<_TabBar> {
           )
         ),
       onVisibilityChanged: (visibilityInfo) {
-        if (widget.selectedStatusIndex == status.index) {
-          _log.i("on visible: ${status.index}");
-          if (visibilityInfo.visibleFraction < 1.0  && widget.isAutoJumpEnable) {
-            _jump(status.index);
+        if (mounted) {
+          if (isSelected) {
+            _log.i("on visible: ${status.index}");
+            if (visibilityInfo.visibleFraction < 1.0 &&
+                !Provider.of<GlobalNotifier>(context, listen: false).isOnDetail &&
+                widget.isAutoJumpEnabled) {
+              _jump(status.index);
+            }
           }
         }
       }
@@ -595,7 +576,7 @@ class _TabBarState extends State<_TabBar> {
     _scrollController = ScrollController()
       ..addListener(() {
         setState(() {
-          widget.isAutoJumpEnable = false;
+          widget.isAutoJumpEnabled = false;
         });
       });
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
@@ -653,7 +634,7 @@ class _Page extends StatefulWidget {
     required this.status,
     required this.isAnime,
     this.nodes,
-    this.doWithNewNodes
+    this.doWithNewNodes,
   });
 
   @override
@@ -685,7 +666,10 @@ class _PageState extends State<_Page> {
     if (widget.nodes == null) {
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
         Provider.of<GlobalNotifier>(context, listen: false).enableMediaToggleChange = false;
-        _LoadData.fetchMedia(
+        final now = Provider.of<GlobalNotifier>(context, listen: false).statusNeedUpdate;
+        final before = Provider.of<GlobalNotifier>(context, listen: false).statusBeforeUpdate;
+        if (before != widget.status.jsonName && now != widget.status.jsonName) {
+          _LoadData.fetchMedia(
             status: widget.status.jsonName,
             isAnime: widget.isAnime,
             limit: 100,
@@ -726,7 +710,12 @@ class _PageState extends State<_Page> {
               Provider.of<GlobalNotifier>(context, listen: false).enableMediaToggleChange = true;
               widget.doWithNewNodes?.call(widget.nodes!);
             },
-        );
+          );
+        } else {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       });
     } else {
       setState(() {
@@ -740,9 +729,8 @@ class _PageState extends State<_Page> {
     super.didChangeDependencies();
     final isReady = Provider.of<GlobalNotifier>(context).changeMediaTypeReady;
     final needUpdate = Provider.of<GlobalNotifier>(context).statusNeedUpdate;
-    final allPageUpdate = Provider.of<GlobalNotifier>(context).allPageUpdate;
+    final allPageUpdate = Provider.of<GlobalNotifier>(context, listen: false).allPageUpdate;
     if (needUpdate == widget.status.jsonName && needUpdate != "*") {
-      _log.w("executed");
       setState(() {
         _isOnUpdate = true;
       });

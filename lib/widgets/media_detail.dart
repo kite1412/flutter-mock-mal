@@ -185,8 +185,11 @@ class _MediaDetailState extends State<MediaDetail> {
   }
 
   void _checkDismissal() {
+    Provider.of<GlobalNotifier>(context, listen: false).isOnDetail = false;
     if (_enableDismissal) {
       Provider.of<RemovableListNotifier>(context, listen: false).removeCurrentItem = true;
+    }
+    if (_calledFromPage != "*") {
       Provider.of<GlobalNotifier>(context, listen: false).currentSessionAlreadyUpdated = false;
     }
   }
@@ -199,6 +202,9 @@ class _MediaDetailState extends State<MediaDetail> {
       setState(() {
         _calledFromPage = Provider.of<RemovableListNotifier>(context, listen: false).statusPage;
       });
+      if (_calledFromPage != "*") {
+        Provider.of<GlobalNotifier>(context, listen: false).isOnDetail = true;
+      }
       Provider.of<RemovableListNotifier>(context, listen: false).statusPage = "*";
     });
     _log.i("media detail init");
@@ -239,7 +245,6 @@ class _MediaDetailState extends State<MediaDetail> {
         _media.id,
         widget.isAnime,
         (MediaNode node) {
-          Provider.of<GlobalNotifier>(context, listen: false).statusNeedUpdate = node.userMediaStatus?.status ?? "";
           if (_calledFromPage.isEmpty) {
             Provider.of<GlobalNotifier>(context, listen: false).statusBeforeUpdate = _media.userMediaStatus?.status ?? "*";
           }
@@ -248,13 +253,21 @@ class _MediaDetailState extends State<MediaDetail> {
             setState(() {
               _enableDismissal = true;
             });
-            Provider.of<RemovableListNotifier>(context, listen: false).deleteInAllPage = true;
+            if (_calledFromPage != "*") {
+              Provider.of<RemovableListNotifier>(context, listen: false).deleteInAllPage = true;
+              Provider.of<GlobalNotifier>(context, listen: false).statusNeedUpdate = _media.userMediaStatus!.status!;
+            }
           } else {
             if (_media.userMediaStatus?.status != node.userMediaStatus?.status) {
               if (_calledFromPage != "*") {
                 setState(() {
                   _enableDismissal = true;
                 });
+                Provider.of<GlobalNotifier>(context, listen: false).statusNeedUpdate = node.userMediaStatus!.status!;
+              }
+            } else {
+              if (_calledFromPage != "*") {
+                Provider.of<GlobalNotifier>(context, listen: false).statusNeedUpdate = node.userMediaStatus!.status!;
               }
             }
           }

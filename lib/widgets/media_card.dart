@@ -124,11 +124,6 @@ class _MediaListState extends State<MediaList> {
     scrollController.addListener(() {
       widget.appBarListener(scrollController);
     });
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      Provider.of<GlobalNotifier>(context, listen: false).enableMediaToggleChange = true;
-      Provider.of<GlobalNotifier>(context ,listen: false).userListShowingAnime = true;
-      _log.i("userList, isAnime: ${Provider.of<GlobalNotifier>(context, listen: false).userListShowingAnime}");
-    });
   }
 
   @override
@@ -237,7 +232,7 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
           context,
           warningType != "Hentai" ? Colors.pink : Colors.black,
           warningType,
-          borderRadius: 0
+          radius: 0
         );
       } else {
         return const SizedBox();
@@ -281,6 +276,47 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
         break;
     }
     return InfoBar.infoBar(context, conColor, status);
+  }
+
+  Widget _cardInfo(BuildContext context, TextStyle? tStyle, TextStyle? cStyle) {
+    return Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: SizedBox(
+          height: 140,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.media.title,
+                style: tStyle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 4,),
+              Text(
+                InfoBar.assertNullStringField(widget.media.synopsis),
+                style: cStyle,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 4,
+              ),
+              Expanded(
+                child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: InfoBar.bars(widget.media, context)..add(
+                        widget.media.userMediaStatus != null ?
+                        Expanded(
+                            child: Align(
+                              alignment: AlignmentDirectional.bottomEnd,
+                              child: _mediaStatusBar(context),
+                            )
+                        ) : const SizedBox()
+                    )
+                ),
+              )
+            ],
+          ),
+        )
+    );
   }
 
   @override
@@ -365,7 +401,11 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
                       Hero(
                         tag: _heroTag,
                         child: Image(
-                          image: Image.network(widget.media.mediaPicture.medium).image,
+                          image: Image.network(
+                              widget.media.mediaPicture.large.isNotEmpty ?
+                                widget.media.mediaPicture.large :
+                                  widget.media.mediaPicture.medium
+                          ).image,
                           height: 140,
                           width: 110,
                           fit: BoxFit.cover,
@@ -401,47 +441,6 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
           ),
         );
       }
-    );
-  }
-
-  Widget _cardInfo(BuildContext context, TextStyle? tStyle, TextStyle? cStyle) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: SizedBox(
-        height: 140,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.media.title,
-              style: tStyle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4,),
-            Text(
-              InfoBar.assertNullStringField(widget.media.synopsis),
-              style: cStyle,
-              overflow: TextOverflow.ellipsis,
-              maxLines: 4,
-            ),
-            Expanded(
-              child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: InfoBar.bars(widget.media, context)..add(
-                      widget.media.userMediaStatus != null ?
-                      Expanded(
-                          child: Align(
-                            alignment: AlignmentDirectional.bottomEnd,
-                            child: _mediaStatusBar(context),
-                          )
-                      ) : const SizedBox()
-                  )
-              ),
-            )
-          ],
-        ),
-      )
     );
   }
 }

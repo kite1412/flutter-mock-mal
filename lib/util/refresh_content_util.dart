@@ -1,3 +1,4 @@
+import 'package:anime_gallery/api/jikan/api_helper.dart';
 import 'package:anime_gallery/api/mal/api_helper.dart';
 import 'package:anime_gallery/model/mal/media_node.dart';
 import 'package:flutter/cupertino.dart';
@@ -51,6 +52,7 @@ class RefreshContentUtil with ChangeNotifier {
           this.data = data;
           _log.w("---IGNORE---: Refreshing SUCCESS! Nodes length: ${data.mediaNodes.length}");
         }
+        _ableToRefresh = true;
       }
     );
   }
@@ -61,18 +63,7 @@ class RefreshContentUtil with ChangeNotifier {
         _refresh();
       }
     } else {
-      final below = scrollController.position.extentAfter;
-      final maxInside = scrollController.position.extentInside;
-      if ((maxInside * 6) >= below) {
-        if (!_isRefreshComplete && _ableToRefresh) {
-          _ableToRefresh = false;
-          _fetchMedia();
-          _log.w("---IGNORE---: Refreshing");
-          Future.delayed(const Duration(milliseconds: 1000)).whenComplete(() {
-            _ableToRefresh = true;
-          });
-        }
-      }
+      _refresh();
     }
   }
 
@@ -84,9 +75,6 @@ class RefreshContentUtil with ChangeNotifier {
         _ableToRefresh = false;
         _fetchMedia();
         _log.w("---IGNORE---: Refreshing");
-        Future.delayed(const Duration(milliseconds: 1000)).whenComplete(() {
-          _ableToRefresh = true;
-        });
       }
     }
   }
@@ -115,8 +103,37 @@ class RefreshRankedContentUtil extends RefreshContentUtil {
         } else {
           _isRefreshCompleteSetter(true);
         }
+        _ableToRefresh = true;
       },
       nodesCallback: onRefreshed
+    );
+  }
+}
+
+class RefreshJikanContentUtil extends RefreshContentUtil {
+  final bool isAnime;
+  Map<String, dynamic>? queries;
+
+  RefreshJikanContentUtil({
+    required super.scrollController,
+    required super.onRefreshed,
+    required super.data,
+    required this.isAnime,
+    this.queries
+  });
+
+  @override
+  void _fetchMedia() {
+    JikanApiHelper.loadNextPage(
+      data,
+      isAnime,
+      (data) {
+        this.data = data;
+        onRefreshed(data.data!);
+        _ableToRefresh = true;
+      },
+      queries: queries,
+      onComplete: () => _isRefreshCompleteSetter(true)
     );
   }
 }
