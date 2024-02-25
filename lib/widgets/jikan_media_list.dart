@@ -15,6 +15,7 @@ class JikanMediaList extends StatefulWidget {
   final List<JikanMedia>? media;
   final bool showHeartIcon;
   final bool isAnime;
+  final bool showBroadcastTime;
   ScrollController? controller;
 
   JikanMediaList({
@@ -22,6 +23,7 @@ class JikanMediaList extends StatefulWidget {
     required this.media,
     required this.showHeartIcon,
     required this.isAnime,
+    required this.showBroadcastTime,
     this.controller
   });
 
@@ -75,6 +77,7 @@ class _JikanMediaListState extends State<JikanMediaList> {
           onTap: (media, isContentSensitive) =>
             onMediaTap(context, media, media.malId.toString(), isContentSensitive),
           showHeartIcon: widget.showHeartIcon,
+          showBroadcastTime: widget.showBroadcastTime,
         )).toList()
     ) : Center(
       child: SpinKitCircle(

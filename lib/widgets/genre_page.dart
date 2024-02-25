@@ -93,10 +93,11 @@ class _GenrePageState extends State<GenrePage> {
                 removeTop: true,
                 context: context,
                 child: JikanMediaList(
-                    media: widget.media,
-                    showHeartIcon: false,
-                    isAnime: widget.isAnime,
+                  media: widget.media,
+                  showHeartIcon: false,
+                  isAnime: widget.isAnime,
                   controller: _controller,
+                  showBroadcastTime: false,
                 )
             ),
           ) :

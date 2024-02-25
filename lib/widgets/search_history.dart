@@ -103,7 +103,7 @@ class _SearchHistoryBar extends StatelessWidget {
                   value, maxLines: 1, overflow: TextOverflow.ellipsis,
                 ),
               ),
-              InkWell(
+              GestureDetector(
                 onTap: () => onDelete(value),
                 child: Icon(
                   CupertinoIcons.clear,

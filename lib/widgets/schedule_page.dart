@@ -362,6 +362,11 @@ class _DayMediaState extends State<_DayMedia> {
 
   @override
   Widget build(BuildContext context) {
-    return JikanMediaList(media: widget.media, showHeartIcon: true, isAnime: true);
+    return JikanMediaList(
+      media: widget.media,
+      showHeartIcon: true,
+      isAnime: true,
+      showBroadcastTime: true,
+    );
   }
 }

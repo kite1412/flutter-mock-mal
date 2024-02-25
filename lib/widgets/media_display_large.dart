@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:anime_gallery/model/jikan/media.dart';
 import 'package:anime_gallery/util/info_bar.dart';
+import 'package:anime_gallery/util/time_util.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -13,13 +14,15 @@ class MediaDisplayLarge extends StatelessWidget {
   final bool isTransitioning;
   final void Function(JikanMedia, bool) onTap;
   final bool showHeartIcon;
+  final bool showBroadcastTime;
 
   const MediaDisplayLarge({
     super.key,
     required this.media,
     required this.isTransitioning,
     required this.onTap,
-    required this.showHeartIcon
+    required this.showHeartIcon,
+    required this.showBroadcastTime
   });
 
   bool isContentSensitive() {
@@ -57,6 +60,8 @@ class MediaDisplayLarge extends StatelessWidget {
     }
     return adjusted;
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -127,6 +132,7 @@ class MediaDisplayLarge extends StatelessWidget {
                   right: 0,
                   left: 0,
                   child: Container(
+                    height: 30,
                     padding: const EdgeInsets.all(4),
                     decoration: const BoxDecoration(
                       color: Color.fromARGB(170, 0, 0, 0),
@@ -161,6 +167,75 @@ class MediaDisplayLarge extends StatelessWidget {
                           ),
                         )
                       ],
+                    ),
+                  )
+                ),
+                if (media.broadcast?.time != null && showBroadcastTime) Positioned(
+                  bottom: 30,
+                  child: GestureDetector(
+                    onTap: !(TimeUtil.needAdjustment(media.broadcast!.getTime()) == 1 || TimeUtil.needAdjustment(media.broadcast!.getTime()) == -1) ?
+                      null : () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            TimeUtil.needAdjustment(media.broadcast!.getTime()) == -1 ?
+                              "Aired the day before" : TimeUtil.needAdjustment(media.broadcast!.getTime()) == 1 ?
+                                "Aired the day after" : "",
+                            style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                              color: Colors.white
+                            ),
+                          ),
+                          duration: const Duration(milliseconds: 1200),
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                        )
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+                      decoration: const BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.only(
+                              topRight: Radius.circular(5)
+                          )
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            CupertinoIcons.clock,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 2,),
+                          Text(
+                            TimeUtil.adjustToLocal(media.broadcast!.getTime()),
+                            style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                                color: Colors.white,
+                                fontSize: 12
+                            ),
+                          ),
+                          if (TimeUtil.needAdjustment(media.broadcast!.getTime()) == -1) const Row(
+                            children: [
+                              SizedBox(width: 2,),
+                              Icon(
+                                CupertinoIcons.arrowtriangle_down_fill,
+                                color: Colors.red,
+                                size: 12,
+                              )
+                            ],
+                          ),
+                          if (TimeUtil.needAdjustment(media.broadcast!.getTime()) == 1)  const Row(
+                            children: [
+                              SizedBox(width: 2,),
+                              Icon(
+                                CupertinoIcons.arrowtriangle_up_fill,
+                                color: Colors.green,
+                                size: 12,
+                              )
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   )
                 ),
