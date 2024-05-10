@@ -2,13 +2,11 @@ import 'package:anime_gallery/api/mal/api_helper.dart';
 import 'package:anime_gallery/notifier/global_notifier.dart';
 import 'package:anime_gallery/other/media_status.dart';
 import 'package:anime_gallery/util/global_constant.dart';
-import 'package:anime_gallery/widgets/media_list.dart';
 import 'package:anime_gallery/widgets/media_toggle.dart';
 import 'package:anime_gallery/widgets/removable_media_list.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
@@ -469,7 +467,6 @@ class _TabBar extends StatefulWidget implements PreferredSizeWidget {
   final void Function(MediaStatus) onStatusTap;
 
   _TabBar({
-    super.key,
     required this.isAnime,
     required this.onStatusTap,
     required this.selectedStatusIndex,
@@ -630,7 +627,6 @@ class _Page extends StatefulWidget {
   void Function(List<MediaNode>)? doWithNewNodes;
 
   _Page({
-    super.key,
     required this.status,
     required this.isAnime,
     this.nodes,

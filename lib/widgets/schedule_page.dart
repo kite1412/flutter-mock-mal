@@ -1,9 +1,7 @@
 import 'dart:math';
 
-import 'package:anime_gallery/util/mock_media.dart';
 import 'package:anime_gallery/view_model/schedule_view_model.dart';
 import 'package:anime_gallery/view_model/view_model.dart';
-import 'package:anime_gallery/widgets/media_list.dart';
 import 'package:anime_gallery/widgets/jikan_media_list.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -242,8 +240,7 @@ class _TabBar extends StatefulWidget implements PreferredSizeWidget {
   final void Function(Day) onTap;
   final ScheduleViewModel viewModel;
 
-  _TabBar({
-    super.key,
+  const _TabBar({
     required this.selectedDay,
     required this.onTap,
     required this.viewModel
@@ -341,7 +338,6 @@ class _DayMedia extends StatefulWidget {
   final ScheduleViewModel viewModel;
 
   const _DayMedia({
-    super.key,
     required this.day,
     required this.media,
     required this.viewModel

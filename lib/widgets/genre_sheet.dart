@@ -10,7 +10,6 @@ import '../database/database.dart';
 import '../database/database_util.dart';
 import '../model/jikan/media.dart';
 import '../model/jikan/resource.dart';
-import 'discovery_page.dart';
 import 'genre_page.dart';
 
 final Logger _log = Logger();

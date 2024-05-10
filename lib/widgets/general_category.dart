@@ -2,17 +2,14 @@
 import 'dart:ui';
 
 import 'package:anime_gallery/other/media_category.dart';
-import 'package:anime_gallery/util/refresh_content_util.dart';
 import 'package:anime_gallery/widgets/category_page.dart';
 import 'package:anime_gallery/widgets/media_display.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:uuid/uuid.dart';
 
 import '../model/mal/data.dart';
 import '../model/mal/media_node.dart';
-import 'media_detail.dart';
 
 // Categories that share similarities, such as using MediaNode,
 // no additional display like showing score, rank, and no manga option

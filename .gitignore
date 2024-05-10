@@ -41,3 +41,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# File containing sensitive client credentials
+/android/app/src/main/kotlin/com/nrr/anime_gallery/ClientCredentials.kt

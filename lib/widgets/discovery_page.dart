@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'dart:ui';
 
 import 'package:anime_gallery/api/mal/api_helper.dart';
 import 'package:anime_gallery/model/mal/data_with_node_ranked.dart';
@@ -726,12 +725,10 @@ class _MediaList extends StatefulWidget {
   RefreshContentUtil? autoRefresh;
 
   _MediaList({
-    super.key,
     required this.nodes,
     required this.isAnime,
     required this.isShowingList,
-    this.scrollController,
-    this.autoRefresh
+    this.scrollController
   });
 
   @override
@@ -769,7 +766,6 @@ class _Grid extends StatelessWidget {
   final VoidCallback onMyListTap;
 
   const _Grid({
-    super.key,
     required this.onGenreTap,
     required this.onMyListTap
   });
@@ -825,7 +821,6 @@ class _GenreBox extends StatelessWidget {
   final TextStyle? descStyle;
 
   const _GenreBox({
-    super.key,
     required this.title,
     required this.description,
     required this.onTap,
@@ -915,7 +910,6 @@ class _MyListBox extends StatelessWidget {
   final TextStyle? descStyle;
 
   const _MyListBox({
-    super.key,
     required this.title,
     required this.description,
     required this.onTap,

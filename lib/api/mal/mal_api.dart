@@ -2,7 +2,6 @@ import 'package:anime_gallery/model/mal/data_with_node_ranked.dart';
 
 import '../../model/mal/data.dart';
 import '../../model/mal/media_node.dart';
-import '../../model/mal/node_with_rank.dart';
 import '../../model/mal/update_media.dart';
 import '../../model/mal/user_information.dart';
 

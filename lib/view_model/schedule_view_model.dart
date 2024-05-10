@@ -1,6 +1,5 @@
 import 'package:anime_gallery/api/jikan/api_helper.dart';
 import 'package:anime_gallery/view_model/view_model.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:visibility_detector/visibility_detector.dart';

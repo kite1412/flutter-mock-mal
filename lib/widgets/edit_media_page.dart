@@ -491,7 +491,6 @@ class _StatusSelection extends StatefulWidget {
   final void Function(MediaStatus) onSelectedStatus;
 
   const _StatusSelection({
-    super.key,
     required this.isAnime,
     required this.status,
     required this.userMediaStatus,
@@ -591,7 +590,6 @@ class _NumberSelection extends StatefulWidget {
   final void Function(int) onSelectedIndex;
 
   const _NumberSelection({
-    super.key,
     required this.length,
     required this.isScore,
     required this.isAnime,

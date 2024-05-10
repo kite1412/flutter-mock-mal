@@ -15,7 +15,6 @@ import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
-import 'dart:ui' as ui;
 import '../model/jikan/character.dart';
 import '../model/mal/media_node.dart';
 import '../model/mal/media_picture.dart';
@@ -900,7 +899,6 @@ class _CharacterTile extends StatelessWidget {
   final Character character;
 
   const _CharacterTile({
-    super.key,
     required this.character
   });
 

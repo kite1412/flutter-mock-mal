@@ -1,14 +1,11 @@
 import 'dart:ui';
 
 import 'package:anime_gallery/model/mal/node_with_rank.dart';
-import 'package:anime_gallery/notifier/global_notifier.dart';
 import 'package:anime_gallery/other/media_category.dart';
 import 'package:anime_gallery/widgets/category_page.dart';
 import 'package:anime_gallery/widgets/media_ranked_display.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:provider/provider.dart';
 import 'package:toggle_switch/toggle_switch.dart';
 import 'package:uuid/uuid.dart';
 

@@ -1,4 +1,3 @@
-import 'package:anime_gallery/model/jikan/broadcast.dart';
 
 class Time {
   final int hour;

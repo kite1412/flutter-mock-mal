@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:logger/logger.dart';
 
 class GlobalNotifier extends ChangeNotifier {
-  final Logger _log = Logger();
   double _selectedIndex = 0.0;
   int _statusIndex = -1;
   bool _updated = false;

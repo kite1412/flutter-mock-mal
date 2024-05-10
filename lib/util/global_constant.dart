@@ -1,5 +1,3 @@
-import '../model/mal/media_node.dart';
-
 class GlobalConstant {
   //Not to be instantiated
   GlobalConstant._();

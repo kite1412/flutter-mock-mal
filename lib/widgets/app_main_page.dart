@@ -1,16 +1,11 @@
 import 'package:anime_gallery/model/mal/user_information.dart';
 import 'package:anime_gallery/util/global_constant.dart';
 import 'package:anime_gallery/widgets/discovery_page.dart';
-import 'package:anime_gallery/widgets/media_card.dart';
-import 'package:anime_gallery/widgets/media_toggle.dart';
 import 'package:anime_gallery/widgets/profile_detail.dart';
-import 'package:anime_gallery/widgets/user_list.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:logger/logger.dart';
-import 'package:provider/provider.dart';
 
-import '../notifier/global_notifier.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key, required this.info});

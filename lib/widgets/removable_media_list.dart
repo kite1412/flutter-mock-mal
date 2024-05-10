@@ -1,9 +1,5 @@
-import 'package:animated_list_plus/animated_list_plus.dart';
-import 'package:anime_gallery/notifier/global_notifier.dart';
-import 'package:anime_gallery/util/mock_media.dart';
 import 'package:anime_gallery/widgets/media_card.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 

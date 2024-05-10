@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:ui';
 
 import 'package:anime_gallery/api/jikan/constant.dart';
 import 'package:anime_gallery/api/jikan/jikan_api.dart';

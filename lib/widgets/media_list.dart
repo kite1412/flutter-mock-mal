@@ -2,10 +2,8 @@ import 'package:anime_gallery/other/update_type.dart';
 import 'package:anime_gallery/widgets/media_card.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:logger/logger.dart';
-import 'package:provider/provider.dart';
 
 import '../model/mal/media_node.dart';
-import '../notifier/global_notifier.dart';
 import '../util/refresh_content_util.dart';
 
 class MMediaList extends StatefulWidget {

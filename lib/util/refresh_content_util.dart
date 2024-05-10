@@ -1,6 +1,5 @@
 import 'package:anime_gallery/api/jikan/api_helper.dart';
 import 'package:anime_gallery/api/mal/api_helper.dart';
-import 'package:anime_gallery/model/mal/media_node.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:logger/logger.dart';
 

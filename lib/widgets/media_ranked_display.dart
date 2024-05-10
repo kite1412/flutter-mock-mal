@@ -2,7 +2,6 @@ import 'package:anime_gallery/api/mal/api_helper.dart';
 import 'package:anime_gallery/model/mal/node_with_rank.dart';
 import 'package:anime_gallery/notifier/global_notifier.dart';
 import 'package:anime_gallery/util/global_constant.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

@@ -2,8 +2,6 @@ import 'package:anime_gallery/model/mal/data_with_node_ranked.dart';
 import 'package:anime_gallery/model/mal/node_with_rank.dart';
 import 'package:anime_gallery/util/refresh_content_util.dart';
 import 'package:anime_gallery/widgets/media_card.dart';
-import 'package:anime_gallery/widgets/media_list.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../model/mal/data.dart';

@@ -3,7 +3,6 @@ import 'dart:ui';
 
 import 'package:anime_gallery/api/mal/mal_api.dart';
 import 'package:anime_gallery/model/mal/media_node.dart';
-import 'package:anime_gallery/model/mal/node_with_rank.dart';
 import 'package:anime_gallery/util/global_constant.dart';
 import 'package:http/http.dart';
 import 'package:anime_gallery/api/mal/constant.dart';

@@ -1,7 +1,5 @@
-import 'dart:convert';
 import 'dart:ui';
 
-import 'package:anime_gallery/api/mal/constant.dart';
 import 'package:anime_gallery/api/mal/mal_api_impl.dart';
 import 'package:anime_gallery/model/mal/data_with_node_ranked.dart';
 import 'package:anime_gallery/model/mal/node_with_rank.dart';

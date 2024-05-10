@@ -1,15 +1,11 @@
 import 'package:anime_gallery/api/mal/api_helper.dart';
-import 'package:anime_gallery/model/mal/media_node.dart';
 import 'package:anime_gallery/util/global_constant.dart';
 import 'package:anime_gallery/widgets/media_detail.dart';
 import 'package:anime_gallery/widgets/media_display_large.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:uuid/uuid.dart';
 
 import '../model/jikan/media.dart';
-import '../model/mal/genre.dart';
 
 class JikanMediaList extends StatefulWidget {
   final List<JikanMedia>? media;

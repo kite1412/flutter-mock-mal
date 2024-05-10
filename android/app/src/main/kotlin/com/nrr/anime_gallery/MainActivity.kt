@@ -22,7 +22,6 @@ class MainActivity: FlutterActivity() {
     }
 
     private object AuthRequestParams {
-        const val CLIENT_ID = "b733180d69f62b4b2d9e7820ce9d9968"
         const val CODE_VERIFIER = "DVH70vGRitZz5mj-2cyeKjn0OjOOAhVxtv6IUnqW5zM"
         const val REDIRECT_URI = "com.nrr://handler"
     }
@@ -35,7 +34,7 @@ class MainActivity: FlutterActivity() {
     private fun authorization(): String {
         val authRequest: AuthorizationRequest = AuthorizationRequest.Builder(
             authServiceConfig,
-            AuthRequestParams.CLIENT_ID,
+            clientId,
             "code",
             Uri.parse(AuthRequestParams.REDIRECT_URI)
         )
@@ -57,7 +56,7 @@ class MainActivity: FlutterActivity() {
             val authService = AuthorizationService(this)
             val tokenRequest: TokenRequest = TokenRequest.Builder(
                 authServiceConfig,
-                AuthRequestParams.CLIENT_ID
+                clientId
             )
                 .setCodeVerifier(AuthRequestParams.CODE_VERIFIER)
                 .setAuthorizationCode(authCode)

@@ -1,4 +1,3 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 
@@ -113,7 +112,6 @@ class _PointIndicator extends StatefulWidget {
   final int selectedIndex;
 
   const _PointIndicator({
-    super.key,
     required this.index,
     required this.selectedIndex
   });
