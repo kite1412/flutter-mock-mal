@@ -3,11 +3,17 @@ package com.nrr.anime_gallery
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
+import android.os.Bundle
 import android.util.Log
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import net.openid.appauth.*
 
 class MainActivity: FlutterActivity() {
@@ -30,6 +36,22 @@ class MainActivity: FlutterActivity() {
         Uri.parse(AUTH_CODE_URI),
         Uri.parse(AUTH_TOKEN_URI)
     )
+
+    private fun splash() = CoroutineScope(Dispatchers.Default).launch {
+        val ss = installSplashScreen()
+        ss.setKeepOnScreenCondition {
+            true
+        }
+        delay(2000)
+        ss.setKeepOnScreenCondition {
+            false
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        splash()
+        super.onCreate(savedInstanceState)
+    }
 
     private fun authorization(): String {
         val authRequest: AuthorizationRequest = AuthorizationRequest.Builder(

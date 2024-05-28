@@ -607,13 +607,6 @@ class _TabBarState extends State<_TabBar> {
                 itemCount: MediaStatus.status(widget.isAnime, includeAll: true).length
               ),
             ),
-            IconButton(
-                onPressed: () {},
-                icon: Icon(
-                  CupertinoIcons.list_bullet_indent,
-                  color: Colors.grey.shade600,
-                )
-            ),
           ],
         )
     );

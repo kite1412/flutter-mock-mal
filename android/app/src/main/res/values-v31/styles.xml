@@ -4,5 +4,6 @@
         <!-- Show a splash screen on the activity. Automatically removed when
              the Flutter engine draws its first frame -->
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/mock_mal_app_logo</item>
+        <item name="postSplashScreenTheme">@style/NormalTheme</item>
     </style>
 </resources>
