@@ -77,3 +77,19 @@ QueryExecutor _executor() {
     });
   });
 }
+
+extension AnimeGenreDataE on AnimeGenreData {
+  static List<AnimeGenreData> fromResources(List<Resource> resources) {
+    return resources.map((e) =>
+        AnimeGenreData(id: -1, malId: e.malId!, genreName: e.name!)
+    ).toList();
+  }
+}
+
+extension MangaGenreDataE on MangaGenreData {
+  static List<MangaGenreData> fromResources(List<Resource> resources) {
+    return resources.map((e) =>
+        MangaGenreData(id: -1, malId: e.malId!, genreName: e.name!)
+    ).toList();
+  }
+}

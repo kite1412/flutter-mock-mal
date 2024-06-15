@@ -54,7 +54,7 @@ class _GenreSheetState extends State<GenreSheet> with SingleTickerProviderStateM
               ChipData(text: e.name ?? "", data: e)
           ).toList();
         });
-        AppDatabaseUtil.insertIntoAnimeGenre(AnimeGenreData.fromResources(genres.data!));
+        AppDatabaseUtil.insertIntoAnimeGenre(AnimeGenreDataE.fromResources(genres.data!));
       },
           onFailure: () => setState(() {
             _animeGenres = [];
@@ -72,7 +72,7 @@ class _GenreSheetState extends State<GenreSheet> with SingleTickerProviderStateM
               ChipData(text: e.name ?? "", data: e)
           ).toList();
         });
-        AppDatabaseUtil.insertIntoMangaGenre(MangaGenreData.fromResources(genres.data!));
+        AppDatabaseUtil.insertIntoMangaGenre(MangaGenreDataE.fromResources(genres.data!));
       },
           onFailure: () => setState(() {
             _mangaGenres = [];

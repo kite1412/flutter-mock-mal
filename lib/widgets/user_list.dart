@@ -4,7 +4,6 @@ import 'package:anime_gallery/other/media_status.dart';
 import 'package:anime_gallery/util/global_constant.dart';
 import 'package:anime_gallery/widgets/media_toggle.dart';
 import 'package:anime_gallery/widgets/removable_media_list.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_svg/svg.dart';

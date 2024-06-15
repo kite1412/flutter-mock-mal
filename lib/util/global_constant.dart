@@ -8,6 +8,7 @@ class GlobalConstant {
   ];
   static const spAccessToken = "accessToken";
   static const spRefreshToken = "refreshToken";
+  static const spClientId = "clientId";
 
   static const mandatoryFields = [
     "synopsis",

@@ -46,7 +46,16 @@ class ScheduleViewModel extends ViewModel {
   late final ScrollController tabBarController;
   late final ScrollController scrollController;
 
-  void _updateMedia(Day day, List<JikanMedia>? newMedia) {
+  List<JikanMedia> _filter(List<JikanMedia>? media) {
+    final Map<int, JikanMedia> map = {};
+    media?.forEach((e) {
+      map[e.malId!] = e;
+    });
+    return map.values.toList();
+  }
+
+  void _updateMedia(Day day, List<JikanMedia>? media) {
+    final newMedia = _filter(media);
     if (day.index == 0) {
       setState(() {
         monday = newMedia;

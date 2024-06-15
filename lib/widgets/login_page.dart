@@ -26,6 +26,7 @@ class _LoginPageState extends State<LoginPage> {
     super.initState();
 
     _androidChannel.setMethodCallHandler((call) async {
+      final sharedPreferences = await SharedPreferences.getInstance();
       if (call.method == "authCode") {
         final authCode = call.arguments as String?;
         if (authCode != null) {
@@ -37,7 +38,6 @@ class _LoginPageState extends State<LoginPage> {
 
       if (call.method == "accessToken") {
         final accessToken = call.arguments as String?;
-        final sharedPreferences = await SharedPreferences.getInstance();
         _log.i("access token is received");
         if (accessToken != null) {
           _log.i("access token is received");
@@ -50,7 +50,6 @@ class _LoginPageState extends State<LoginPage> {
 
       if (call.method == "refreshToken") {
         final refreshToken = call.arguments as String?;
-        final sharedPreferences = await SharedPreferences.getInstance();
         _log.i("refresh token is received");
         if (refreshToken != null) {
           _log.i("refresh token is received");
@@ -59,6 +58,11 @@ class _LoginPageState extends State<LoginPage> {
         } else {
           _log.w("refresh token is null");
         }
+      }
+
+      if (call.method == "clientId") {
+        final clientId = call.arguments as String;
+        sharedPreferences.setString(GlobalConstant.spClientId, clientId);
       }
     });
   }

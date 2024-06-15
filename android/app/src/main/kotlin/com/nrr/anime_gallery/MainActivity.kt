@@ -91,6 +91,7 @@ class MainActivity: FlutterActivity() {
             ) { response, _ ->
                 response?.accessToken?.let {
                     channel.invokeMethod("accessToken", it)
+                    channel.invokeMethod("clientId", clientId)
                     Log.i("my-app", "access token: $it")
                 }
                 response?.refreshToken?.let {

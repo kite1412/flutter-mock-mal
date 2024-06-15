@@ -134,13 +134,6 @@ class AnimeGenreData extends DataClass implements Insertable<AnimeGenreData>, Ge
         malId: malId ?? this.malId,
         genreName: genreName ?? this.genreName,
       );
-
-  static List<AnimeGenreData> fromResources(List<Resource> resources) {
-    return resources.map((e) =>
-      AnimeGenreData(id: -1, malId: e.malId!, genreName: e.name!)
-    ).toList();
-  }
-
   @override
   String toString() {
     return (StringBuffer('AnimeGenreData(')
@@ -349,13 +342,6 @@ class MangaGenreData extends DataClass implements Insertable<MangaGenreData>, Ge
         malId: malId ?? this.malId,
         genreName: genreName ?? this.genreName,
       );
-
-  static List<MangaGenreData> fromResources(List<Resource> resources) {
-    return resources.map((e) =>
-        MangaGenreData(id: -1, malId: e.malId!, genreName: e.name!)
-    ).toList();
-  }
-
   @override
   String toString() {
     return (StringBuffer('MangaGenreData(')

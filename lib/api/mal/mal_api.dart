@@ -1,3 +1,4 @@
+import 'package:anime_gallery/model/mal/access_token.dart';
 import 'package:anime_gallery/model/mal/data_with_node_ranked.dart';
 
 import '../../model/mal/data.dart';
@@ -23,4 +24,6 @@ abstract class MalAPI {
   Future<bool> removeMedia(int mediaId, bool isAnime);
 
   Future<DataWithRank> rankedNextPage(String nextPage);
+
+  Future<AccessToken?> refreshToken(String refreshToken);
 }

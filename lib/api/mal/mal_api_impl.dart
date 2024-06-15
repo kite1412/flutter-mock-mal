@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:ui';
 
 import 'package:anime_gallery/api/mal/mal_api.dart';
+import 'package:anime_gallery/api/mal/token.dart';
+import 'package:anime_gallery/model/mal/access_token.dart';
 import 'package:anime_gallery/model/mal/media_node.dart';
 import 'package:anime_gallery/util/global_constant.dart';
 import 'package:http/http.dart';
@@ -19,23 +21,27 @@ typedef AccessTokenCallback<T> = T Function(String);
 
 class MalAPIImpl implements MalAPI {
 
-  final Logger _log = Logger();
+  final _log = Logger();
+  final token = Token();
 
   Map<String, String> _authHeader(String accessToken) {
     return {"Authorization" : "Bearer $accessToken"};
   }
 
-  Future<T> _getTokenAndPerformRequest<T>(
-      {required AccessTokenCallback<Future<T>> tokenCallback,
-        required GenericCallback<Future<T>> onTokenNull}
-      ) async {
-    final SharedPreferences sharedPreferences = await SharedPreferences
-        .getInstance();
-    final accessToken = sharedPreferences.get(
-        GlobalConstant.spAccessToken) as String?;
-    // _log.w("token: $accessToken");
-    return accessToken != null ? await tokenCallback(accessToken) : await onTokenNull();
+  Map<String, String> _authBasicHeader(String clientId) {
+    return {"Authorization" : "Basic ${base64Encode(utf8.encode("$clientId:"))}"};
   }
+
+  // Future<T> _getTokenAndPerformRequest<T>(
+  //     {required AccessTokenCallback<Future<T>> tokenCallback,
+  //       required GenericCallback<Future<T>> onTokenNull}
+  //     ) async {
+  //   final SharedPreferences sharedPreferences = await SharedPreferences
+  //       .getInstance();
+  //   final accessToken = sharedPreferences.get(
+  //       GlobalConstant.spAccessToken) as String?;
+  //   return accessToken != null ? await tokenCallback(accessToken) : await onTokenNull();
+  // }
 
   @override
   Future<dynamic> fetchMedia(
@@ -43,7 +49,8 @@ class MalAPIImpl implements MalAPI {
     Map<String, dynamic> queries,
     {bool needRank = false,
     VoidCallback? onFailure}
-  ) async => await _getTokenAndPerformRequest<dynamic>(
+  ) async => await token<dynamic>(
+    this,
     tokenCallback: (token) async {
       String fullPath = "";
       String query = "";
@@ -94,7 +101,8 @@ class MalAPIImpl implements MalAPI {
   );
 
   @override
-  Future<UserInformation> fetchUserInfo(List<String> fields) => _getTokenAndPerformRequest<UserInformation>(
+  Future<UserInformation> fetchUserInfo(List<String> fields) => token<UserInformation>(
+    this,
     tokenCallback: (token) async {
       try {
         String query = "";
@@ -122,7 +130,8 @@ class MalAPIImpl implements MalAPI {
   );
 
   @override
-  Future<Data> nextPage(String nextPage) => _getTokenAndPerformRequest<Data>(
+  Future<Data> nextPage(String nextPage) => token<Data>(
+    this,
     tokenCallback: (token) async {
       try {
         if (nextPage.isNotEmpty) {
@@ -151,7 +160,8 @@ class MalAPIImpl implements MalAPI {
     int id,
     bool isAnime,
     {List<String> fields= const []}
-  ) => _getTokenAndPerformRequest(
+  ) => token<MediaNode>(
+    this,
     tokenCallback: (token) async {
       String mediaType = "";
       isAnime ? mediaType = "anime" : mediaType = "manga";
@@ -176,7 +186,8 @@ class MalAPIImpl implements MalAPI {
   Future<DataWithRank> fetchRankedMedia(
     String path,
     Map<String, dynamic> queries,
-  ) => _getTokenAndPerformRequest(
+  ) => token<DataWithRank>(
+      this,
       tokenCallback: (token) async {
         String fullPath = "";
         String query = "";
@@ -218,12 +229,19 @@ class MalAPIImpl implements MalAPI {
       }
   );
 
+  String _encodeBody(Map<String, dynamic> body) {
+    return body.entries.map((e) {
+      return "${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value.toString())}";
+    }).join("&");
+  }
+
   @override
   Future<UpdateMedia> updateMedia(
     int mediaId,
     bool isAnime,
     Map<String, dynamic> body,
-  ) => _getTokenAndPerformRequest(
+  ) => token<UpdateMedia>(
+    this,
     tokenCallback: (token) async {
       String path = isAnime ? "anime/" : "manga/";
       path += "$mediaId/my_list_status";
@@ -244,14 +262,9 @@ class MalAPIImpl implements MalAPI {
     }
   );
 
-  String _encodeBody(Map<String, dynamic> body) {
-    return body.entries.map((e) {
-      return "${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value.toString())}";
-    }).join("&");
-  }
-
   @override
-  Future<bool> removeMedia(int mediaId, bool isAnime) => _getTokenAndPerformRequest(
+  Future<bool> removeMedia(int mediaId, bool isAnime) => token<bool>(
+    this,
     tokenCallback: (token) async {
       final path = isAnime ? "anime/$mediaId/my_list_status" : "manga/$mediaId/my_list_status";
       try {
@@ -270,27 +283,62 @@ class MalAPIImpl implements MalAPI {
   );
 
   @override
-  Future<DataWithRank> rankedNextPage(String nextPage) => _getTokenAndPerformRequest<DataWithRank>(
-      tokenCallback: (token) async {
-        try {
-          if (nextPage.isNotEmpty) {
-            final Response response = await get(Uri.parse(nextPage), headers: _authHeader(token));
-            final Map<String, dynamic> json = jsonDecode(response.body);
-            final DataWithRank data = DataWithRank.fromJson(json);
-            _log.i("next page has been loaded");
-            return data;
-          } else {
-            _log.w("next page is not exist");
-            return DataWithRank.empty();
-          }
-        } catch (e) {
-          _log.e(e);
+  Future<DataWithRank> rankedNextPage(String nextPage) => token<DataWithRank>(
+    this,
+    tokenCallback: (token) async {
+      try {
+        if (nextPage.isNotEmpty) {
+          final Response response = await get(Uri.parse(nextPage), headers: _authHeader(token));
+          final Map<String, dynamic> json = jsonDecode(response.body);
+          final DataWithRank data = DataWithRank.fromJson(json);
+          _log.i("next page has been loaded");
+          return data;
+        } else {
+          _log.w("next page is not exist");
           return DataWithRank.empty();
         }
-      },
-      onTokenNull: () {
-        _log.w("access token is null");
-        return Future.value(DataWithRank.empty());
+      } catch (e) {
+        _log.e(e);
+        return DataWithRank.empty();
       }
+    },
+    onTokenNull: () {
+      _log.w("access token is null");
+      return Future.value(DataWithRank.empty());
+    }
   );
+
+  @override
+  Future<AccessToken?> refreshToken(String refreshToken) async {
+    final body = {"grant_type" : "refresh_token", "refresh_token" : refreshToken};
+    final sp = await SharedPreferences.getInstance();
+    try {
+      final response = await post(
+          Uri.parse(MalConstant.tokenEndpoint),
+          headers: _authBasicHeader(sp.getString(GlobalConstant.spClientId)!),
+          body: _encodeBody(body)
+      );
+      final json = jsonDecode(response.body);
+      return AccessToken.fromJson(json);
+    } catch(e) {
+      _log.e(e);
+      return null;
+    }
+  }
+
+  Future<AccessToken?> refreshToken_test(String refreshToken, String clientId) async {
+    final body = {"grant_type" : "refresh_token", "refresh_token" : refreshToken};
+    try {
+      final response = await post(
+          Uri.parse(MalConstant.tokenEndpoint),
+          headers: _authBasicHeader(clientId),
+          body: _encodeBody(body)
+      );
+      final json = jsonDecode(response.body);
+      return AccessToken.fromJson(json);
+    } catch(e) {
+      _log.e(e);
+      return null;
+    }
+  }
 }
